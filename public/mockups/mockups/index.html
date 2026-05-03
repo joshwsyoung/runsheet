@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Runsheet</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="flex min-h-full justify-center bg-[#fcfcfc] p-2.5 font-sans text-[#333] antialiased">
+  <div class="flex w-full max-w-[450px] flex-col overflow-hidden rounded-[24px] border border-[#eeeeee] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] min-[500px]:min-h-[95vh]">
+    <header class="border-b " style="border-color:#eeeeee">
+      <div class="px-4 py-5">
+        <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Runsheet</p>
+        <h1 class="mt-1 text-[1.5rem] font-bold leading-tight" style="color:#4a90e2">Your trips</h1>
+        <p class="mt-2 text-[0.9rem] text-[#666]">Day-by-day plans — same calm layout on phone and desktop.</p>
+      </div>
+    </header>
+
+    <main class="flex-1 px-[15px] pb-6 pt-2">
+      <a href="day.html" class="rs-card block text-inherit no-underline transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-[#333]">Les Gets · Jan 2026</h2>
+            <p class="mt-1 text-[0.85rem] text-[#666]">Ski week · tunnel, drive blocks, house checklist</p>
+          </div>
+          <span class="rs-date-badge self-start px-2.5">Alpine</span>
+        </div>
+      </a>
+
+      <a href="day.html" class="rs-card block text-inherit no-underline transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-[#333]">Paros (Thelma) · May–Jun 2025</h2>
+            <p class="mt-1 text-[0.85rem] text-[#666]">Flights, car hire, villa check-in, bookings + refs</p>
+          </div>
+          <span class="rs-date-badge self-start px-2.5">Greece</span>
+        </div>
+      </a>
+
+      <a href="day.html" class="rs-card block text-inherit no-underline transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-[#333]">House moving</h2>
+            <p class="mt-1 text-[0.85rem] text-[#666]">Single heavy day — list + schedule</p>
+          </div>
+          <span class="rs-date-badge self-start px-2.5">Local</span>
+        </div>
+      </a>
+
+      <button type="button" class="rs-add-btn mt-2">＋ New runsheet</button>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-rs-page: #fcfcfc;
+  --color-rs-border: #eeeeee;
+  --color-rs-primary: #4a90e2;
+  --color-rs-today: #eef6ff;
+  --color-rs-muted: #999999;
+  --color-rs-text: #333333;
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-rs-page);
+  color: var(--color-rs-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .rs-tab {
+    @apply flex-1 rounded-[10px] border border-[#eeeeee] bg-white px-3 py-2 text-[0.8rem] font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition;
+  }
+  .rs-tab[aria-selected="true"] {
+    @apply border-[#4a90e2] bg-[#4a90e2] text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)];
+  }
+  .rs-tab:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-[#4a90e2];
+  }
+  .rs-card {
+    @apply mb-3 rounded-[14px] border border-[#eeeeee] bg-white p-3 shadow-[0_4px_15px_rgba(0,0,0,0.05)];
+  }
+  .rs-date-badge {
+    @apply rounded-[10px] border border-[#eeeeee] bg-[#fafafa] px-2 py-1.5 text-center text-[0.8rem] font-bold tabular-nums text-[#333];
+  }
+  .rs-add-btn {
+    @apply flex h-14 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#4a90e2] bg-[#f7fbff] text-[0.95rem] font-bold text-[#4a90e2] shadow-[0_2px_8px_rgba(74,144,226,0.12)];
+  }
+  .rs-hour {
+    @apply flex h-12 items-start justify-end border-b border-[#eeeeee] pr-1 pt-0.5 text-[0.65rem] font-bold tabular-nums text-[#999];
+  }
+  .rs-slot {
+    @apply absolute left-0 right-0 overflow-hidden rounded-lg border-l-[4px] bg-white px-2 py-1 text-[0.72rem] font-bold leading-tight shadow-[0_2px_6px_rgba(0,0,0,0.06)];
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .print-root {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .print-root > div {
+    max-width: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .no-print,
+  .rs-add-btn,
+  nav[aria-label="Day layout"],
+  [data-schedule-nested-tabs] {
+    display: none !important;
+  }
+  .print-break {
+    break-after: page;
+  }
+  .rs-card {
+    box-shadow: none !important;
+    border-color: #ddd !important;
+  }
 }

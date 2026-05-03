@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Runsheet · Day</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="flex min-h-full justify-center bg-[#fcfcfc] p-2.5 pb-28 font-sans text-[#333] antialiased">
+  <div class="flex w-full max-w-[450px] flex-col overflow-hidden rounded-[24px] border border-[#eeeeee] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
+    <div class="flex justify-around border-b bg-white py-5 text-center" style="border-color:#eeeeee">
+      <div>
+        <label class="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Trip</label>
+        <span class="mt-0.5 block text-[1.05rem] font-bold">Paros</span>
+      </div>
+      <div>
+        <label class="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Focus</label>
+        <span class="mt-0.5 block text-[1.05rem] font-bold" style="color:#4a90e2">Thu 22 May</span>
+      </div>
+      <div>
+        <label class="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Slots</label>
+        <span class="mt-0.5 block text-[1.05rem] font-bold">18</span>
+      </div>
+    </div>
+
+    <!-- Week navigator (always visible) -->
+    <div class="border-b px-3 py-3" style="border-color:#eeeeee">
+      <div class="mb-3 flex items-center justify-between gap-2">
+        <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)]" style="border-color:#eeeeee" aria-label="Previous week">◀</button>
+        <div class="min-w-0 text-center">
+          <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Week</p>
+          <p class="text-[0.85rem] font-bold text-[#333]">19 May – 25 May 2025</p>
+        </div>
+        <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)]" style="border-color:#eeeeee" aria-label="Next week">▶</button>
+      </div>
+      <div class="flex justify-between gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#eeeeee" data-day="mon"><span class="text-[0.55rem] font-bold uppercase opacity-80">Mon</span><span class="text-sm font-bold">19</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#eeeeee" data-day="tue"><span class="text-[0.55rem] font-bold uppercase opacity-80">Tue</span><span class="text-sm font-bold">20</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#eeeeee" data-day="wed"><span class="text-[0.55rem] font-bold uppercase opacity-80">Wed</span><span class="text-sm font-bold">21</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border-2 bg-[#4a90e2] font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]" style="border-color:#4a90e2" data-day="thu"><span class="text-[0.55rem] font-bold uppercase opacity-90">Thu</span><span class="text-sm font-bold">22</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-[#eef6ff] text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#4a90e2;border-width:2px" data-day="fri"><span class="text-[0.55rem] font-bold uppercase opacity-80">Fri</span><span class="text-sm font-bold">23</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#eeeeee" data-day="sat"><span class="text-[0.55rem] font-bold uppercase opacity-80">Sat</span><span class="text-sm font-bold">24</span></button>
+        <button type="button" class="day-chip flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl border bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]" style="border-color:#eeeeee" data-day="sun"><span class="text-[0.55rem] font-bold uppercase opacity-80">Sun</span><span class="text-sm font-bold">25</span></button>
+      </div>
+      <div class="flex items-center justify-between gap-2 border-t pt-2" style="border-color:#eeeeee">
+        <a href="index.html" class="text-[0.8rem] font-bold text-[#777] no-underline hover:text-[#4a90e2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]">← All</a>
+        <span id="day-context" class="text-center text-[0.72rem] font-bold text-[#999]">Thu 22 · travel day*</span>
+        <span class="w-10"></span>
+      </div>
+    </div>
+
+    <nav class="flex gap-2 p-3" role="tablist" aria-label="Day layout">
+      <button type="button" role="tab" id="tab-list" class="rs-tab font-[inherit]" aria-controls="view-list" aria-selected="true">List</button>
+      <button type="button" role="tab" id="tab-schedule" class="rs-tab font-[inherit]" aria-controls="view-schedule" aria-selected="false">Schedule</button>
+    </nav>
+
+    <div id="view-list" role="tabpanel" aria-labelledby="tab-list" class="flex-1 px-[15px] pb-4 pt-0" style="background:#fff">
+      <p class="mb-3 text-center text-[0.7rem] font-bold uppercase tracking-wide text-[#999]">This day · Start · End · Description</p>
+
+      <button type="button" class="rs-card w-full cursor-pointer text-left font-[inherit] text-inherit transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]" onclick="location.href='edit.html'">
+        <div class="flex items-start gap-3">
+          <div class="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 !py-2">
+            <span class="tabular-nums">03:50</span>
+            <span class="text-[0.65rem] font-bold text-[#999]">↓</span>
+            <span class="tabular-nums">06:00</span>
+          </div>
+          <div class="min-w-0 flex-1 border-l-[4px] pl-3" style="border-color:#2ecc71;background:linear-gradient(90deg,#fafffb 0%,#fff 12%);margin-left:-2px;padding-left:14px;border-radius:4px">
+            <p class="text-[0.9rem] font-bold leading-snug">Layover in Athens · 2hr 10mins</p>
+            <p class="mt-1 text-[0.8rem] text-[#666]">Between international and island hop</p>
+          </div>
+        </div>
+      </button>
+
+      <button type="button" class="rs-card w-full cursor-pointer text-left font-[inherit] text-inherit transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]" onclick="location.href='edit.html'">
+        <div class="flex items-start gap-3">
+          <div class="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 !py-2">
+            <span class="tabular-nums">07:00</span>
+            <span class="text-[0.65rem] font-bold text-[#999]">→</span>
+            <span class="tabular-nums">07:30</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[0.9rem] font-bold leading-snug">Pick-up hire car (Europcar)</p>
+            <ul class="mt-2 space-y-1 border-l-2 pl-3 text-[0.78rem] leading-relaxed text-[#666]" style="border-color:#4a90e2">
+              <li>Booking 27656007 · Conf. GR175429730</li>
+              <li>Tel +30 2284090732</li>
+            </ul>
+          </div>
+          <div class="h-12 w-12 shrink-0 rounded-lg bg-[#f0f0f0] bg-cover bg-center" style="background-image:url(https://picsum.photos/seed/europcar/96)"></div>
+        </div>
+      </button>
+
+      <button type="button" class="rs-card w-full cursor-pointer text-left font-[inherit] text-inherit transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]" onclick="location.href='edit.html'">
+        <div class="flex items-start gap-3">
+          <div class="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 !py-2">
+            <span class="tabular-nums">08:00</span>
+            <span class="text-[0.65rem] font-bold text-[#999]">→</span>
+            <span class="tabular-nums">09:00</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[0.9rem] font-bold leading-snug">Check-in · Villa Thelma</p>
+            <ul class="mt-2 space-y-1 border-l-2 pl-3 text-[0.78rem] text-[#666]" style="border-color:#4a90e2">
+              <li>Early check-in agreed · Xenia +30 698 01 16 317</li>
+            </ul>
+          </div>
+        </div>
+      </button>
+
+      <button type="button" class="rs-card w-full cursor-pointer text-left font-[inherit] text-inherit transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]" onclick="location.href='edit.html'">
+        <div class="flex items-start gap-3">
+          <div class="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 !py-2">
+            <span class="tabular-nums">20:30</span>
+            <span class="text-[0.65rem] font-bold text-[#999]">—</span>
+            <span class="text-[0.7rem] font-bold text-[#999]">open</span>
+          </div>
+          <div class="min-w-0 flex-1 border-l-[4px] pl-3" style="border-color:#e74c3c;background:linear-gradient(90deg,#fffafb 0%,#fff 12%);margin-left:-2px;padding-left:14px;border-radius:4px">
+            <p class="text-[0.9rem] font-bold leading-snug">Home and sleep</p>
+            <p class="mt-1 text-[0.8rem] text-[#666]">Open end time</p>
+          </div>
+        </div>
+      </button>
+
+      <div class="mt-6 border-t pt-4" style="border-color:#eeeeee">
+        <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Checklist</p>
+        <h3 class="mt-1 text-[0.95rem] font-bold text-[#333]">House closedown</h3>
+        <ul class="mt-3 space-y-2 text-[0.8rem] text-[#555]">
+          <li class="flex gap-2"><span class="mt-0.5 text-[#ccc]">☐</span> Water plants / garden</li>
+          <li class="flex gap-2"><span class="mt-0.5 text-[#ccc]">☐</span> Lock doors & windows · arm cameras</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Schedule: Day hours + All days -->
+    <div id="view-schedule" role="tabpanel" aria-labelledby="tab-schedule" class="flex-1 px-2 pb-4 pt-0" hidden style="background:#fff">
+      <div class="mx-1 mb-3 flex gap-1 rounded-[10px] bg-[#f0f0f0] p-1" role="tablist" aria-label="Schedule style">
+        <button type="button" role="tab" id="tab-sched-hours" class="rs-tab font-[inherit] shadow-none" aria-controls="view-schedule-hours" aria-selected="true">Day · hours</button>
+        <button type="button" role="tab" id="tab-sched-alldays" class="rs-tab font-[inherit] shadow-none" aria-controls="view-schedule-alldays" aria-selected="false">All days</button>
+      </div>
+
+      <!-- Hour grid (06:00–22:00, 48px per hour) -->
+      <div id="view-schedule-hours" role="tabpanel" aria-labelledby="tab-sched-hours">
+        <p class="mb-2 px-1 text-center text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Thu 22 May · by hour</p>
+        <div class="mx-auto grid max-w-full grid-cols-[2.75rem_1fr] overflow-hidden rounded-xl border" style="border-color:#eeeeee">
+          <div class="bg-[#fafafa] py-1 pr-0.5">
+            <div class="rs-hour">06</div>
+            <div class="rs-hour">07</div>
+            <div class="rs-hour">08</div>
+            <div class="rs-hour">09</div>
+            <div class="rs-hour">10</div>
+            <div class="rs-hour">11</div>
+            <div class="rs-hour">12</div>
+            <div class="rs-hour">13</div>
+            <div class="rs-hour">14</div>
+            <div class="rs-hour">15</div>
+            <div class="rs-hour">16</div>
+            <div class="rs-hour">17</div>
+            <div class="rs-hour">18</div>
+            <div class="rs-hour">19</div>
+            <div class="rs-hour">20</div>
+            <div class="rs-hour">21</div>
+            <div class="rs-hour">22</div>
+          </div>
+          <div class="relative min-h-[calc(48px*17)] bg-[linear-gradient(to_bottom,#fcfcfc_0px,#fcfcfc_47px,#f3f4f6_48px)] bg-[length:100%_48px] py-1">
+            <div class="pointer-events-none absolute left-0 right-0 top-[72px] z-0 h-px bg-[#4a90e2]/25" title="Example current time"></div>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[48px] z-[1] min-h-[22px] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#2ecc71;height:24px" onclick="location.href='edit.html'">
+              <p class="truncate text-[0.72rem] font-bold leading-tight">06:40 Athens → Paros flight</p>
+            </button>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[72px] z-[1] min-h-[22px] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#2ecc71;height:24px" onclick="location.href='edit.html'">
+              <p class="truncate text-[0.72rem] font-bold leading-tight">Baggage · 06:40–07:00</p>
+            </button>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[96px] z-[1] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#2ecc71;height:48px" onclick="location.href='edit.html'">
+              <p class="text-[0.78rem] font-bold">Europcar pick-up</p>
+              <p class="text-[0.68rem] font-semibold tabular-nums text-[#555]">07:00 – 07:30</p>
+            </button>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[144px] z-[1] min-h-[36px] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#4a90e2;height:36px" onclick="location.href='edit.html'">
+              <p class="text-[0.78rem] font-bold">Drive to villa · 07:30–08:00</p>
+            </button>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[192px] z-[1] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#4a90e2;height:48px" onclick="location.href='edit.html'">
+              <p class="text-[0.78rem] font-bold">Villa Thelma check-in</p>
+              <p class="text-[0.68rem] font-semibold tabular-nums text-[#555]">08:00 – 09:00</p>
+            </button>
+            <button type="button" class="rs-slot left-1.5 right-1.5 top-[432px] z-[1] min-h-[40px] w-[calc(100%-12px)] border-l-[5px] bg-white" style="border-left-color:#4a90e2;height:40px" onclick="location.href='edit.html'">
+              <p class="text-[0.78rem] font-bold">Errands / supermarket block</p>
+              <p class="text-[0.68rem] text-[#666]">09:00 – afternoon</p>
+            </button>
+          </div>
+        </div>
+        <p class="mt-2 px-1 text-center text-[0.65rem] text-[#999]">Pick a day in the week row above · grid shows that day only</p>
+      </div>
+
+      <!-- Full trip: every day as a section -->
+      <div id="view-schedule-alldays" role="tabpanel" aria-labelledby="tab-sched-alldays" hidden class="px-1">
+        <p class="mb-3 text-center text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Whole runsheet · scroll all days</p>
+
+        <section class="mb-5 overflow-hidden rounded-xl border bg-white" style="border-color:#eeeeee;box-shadow:0 4px 15px rgba(0,0,0,0.04)">
+          <div class="border-b px-3 py-2.5" style="border-color:#eeeeee;background:#fafafa">
+            <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Tuesday</p>
+            <p class="text-[0.95rem] font-bold text-[#333]">20 May <span class="text-[#999]">·</span> <span class="text-[0.8rem] font-semibold text-[#4a90e2]">6 items</span></p>
+          </div>
+          <div class="divide-y" style="border-color:#f0f0f0">
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">06:00</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Check-in to flights online</span>
+            </button>
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">—</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Call Europcar to confirm</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="mb-5 overflow-hidden rounded-xl border bg-white" style="border-color:#eeeeee;box-shadow:0 4px 15px rgba(0,0,0,0.04)">
+          <div class="border-b px-3 py-2.5" style="border-color:#eeeeee;background:#fafafa">
+            <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Wednesday</p>
+            <p class="text-[0.95rem] font-bold text-[#333]">21 May <span class="text-[#999]">·</span> <span class="text-[0.8rem] font-semibold text-[#4a90e2]">8 items</span></p>
+          </div>
+          <div class="divide-y" style="border-color:#f0f0f0">
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">09:00–17:00</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Work · bags in hallway</span>
+            </button>
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">19:30</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Taxi to Heathrow T2</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="mb-5 overflow-hidden rounded-xl border bg-white" style="border-color:#eeeeee;box-shadow:0 4px 15px rgba(0,0,0,0.04)">
+          <div class="border-b px-3 py-2.5" style="border-color:#eeeeee;background:#eef6ff">
+            <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#4a90e2]">Thursday · focus</p>
+            <p class="text-[0.95rem] font-bold text-[#333]">22 May <span class="text-[#999]">·</span> <span class="text-[0.8rem] font-semibold text-[#4a90e2]">travel day*</span></p>
+          </div>
+          <div class="divide-y" style="border-color:#f0f0f0">
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.6rem]">22:15–03:50+1</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Flight LHR → Athens</span>
+            </button>
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">07:00–07:30</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Europcar · airport</span>
+            </button>
+            <button type="button" class="flex w-full cursor-pointer items-start gap-2 px-3 py-2.5 text-left font-[inherit] hover:bg-[#fafafa]" onclick="location.href='edit.html'">
+              <span class="rs-date-badge !py-1.5 text-[0.65rem]">08:00–09:00</span>
+              <span class="min-w-0 flex-1 text-[0.82rem] font-semibold leading-snug">Villa Thelma check-in</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="mb-4 overflow-hidden rounded-xl border bg-white" style="border-color:#eeeeee;box-shadow:0 4px 15px rgba(0,0,0,0.04)">
+          <div class="border-b px-3 py-2.5" style="border-color:#eeeeee;background:#fafafa">
+            <p class="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Friday</p>
+            <p class="text-[0.95rem] font-bold text-[#333]">23 May <span class="text-[#999]">·</span> <span class="text-[0.8rem] font-semibold text-[#4a90e2]">first full day</span></p>
+          </div>
+          <div class="divide-y px-3 py-3" style="border-color:#f0f0f0">
+            <p class="text-[0.82rem] font-semibold leading-snug text-[#555]">Wake up · pastries · hike · dinner Siparos 18:00</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="rs-add-btn fixed bottom-5 left-1/2 z-10 w-[min(calc(100vw-20px),430px)] -translate-x-1/2 rounded-[14px] shadow-[0_8px_24px_rgba(74,144,226,0.35)]" aria-label="Add slot" onclick="location.href='edit.html'">＋ Add slot</button>
+
+  <script>
+    (function () {
+      var listPanel = document.getElementById("view-list");
+      var schedulePanel = document.getElementById("view-schedule");
+      var tabList = document.getElementById("tab-list");
+      var tabSchedule = document.getElementById("tab-schedule");
+      var tabHours = document.getElementById("tab-sched-hours");
+      var tabAll = document.getElementById("tab-sched-alldays");
+      var hoursPanel = document.getElementById("view-schedule-hours");
+      var allDaysPanel = document.getElementById("view-schedule-alldays");
+
+      function showMainTab(mode) {
+        var isList = mode === "list";
+        listPanel.hidden = isList ? false : true;
+        schedulePanel.hidden = isList ? true : false;
+        tabList.setAttribute("aria-selected", isList ? "true" : "false");
+        tabSchedule.setAttribute("aria-selected", isList ? "false" : "true");
+      }
+
+      function showScheduleSub(mode) {
+        var isHours = mode === "hours";
+        hoursPanel.hidden = isHours ? false : true;
+        allDaysPanel.hidden = isHours ? true : false;
+        tabHours.setAttribute("aria-selected", isHours ? "true" : "false");
+        tabAll.setAttribute("aria-selected", isHours ? "false" : "true");
+      }
+
+      tabList.addEventListener("click", function () { showMainTab("list"); });
+      tabSchedule.addEventListener("click", function () { showMainTab("schedule"); });
+      tabHours.addEventListener("click", function () { showScheduleSub("hours"); });
+      tabAll.addEventListener("click", function () { showScheduleSub("all"); });
+    })();
+  </script>
+</body>
+</html>

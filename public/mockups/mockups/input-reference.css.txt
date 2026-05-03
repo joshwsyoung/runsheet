@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@source "../*.html";
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@theme {
+  --font-sans: ui-sans-serif, "Segoe UI", system-ui, sans-serif;
+}
+
+/* Pro Budget Tracker–style tabs and timeline primitives */
+@layer components {
+  .rs-tab {
+    @apply flex-1 cursor-pointer rounded-[12px] border border-[#eeeeee] bg-white py-2.5 px-2 text-[0.8rem] font-bold text-[#777] shadow-[0_2px_4px_rgba(0,0,0,0.02)] transition-all duration-200;
+  }
+  .rs-tab[aria-selected="true"] {
+    @apply border-[#4a90e2] bg-[#4a90e2] text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)];
+  }
+  .rs-tab:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-[#4a90e2];
+  }
+
+  .rs-hour {
+    @apply h-12 border-t border-dashed border-[#eeeeee] pt-1 text-right text-[0.7rem] font-bold tabular-nums text-[#999];
+  }
+
+  .rs-slot {
+    @apply absolute cursor-pointer rounded-2xl border border-[#eeeeee] bg-white px-2.5 py-2 font-sans text-inherit shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition duration-200 hover:shadow-[0_6px_18px_rgba(0,0,0,0.07)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2];
+  }
+
+  .rs-card {
+    @apply mb-3 rounded-2xl border border-[#eeeeee] bg-white p-[15px] shadow-[0_4px_15px_rgba(0,0,0,0.05)];
+  }
+
+  .rs-date-badge {
+    @apply shrink-0 rounded-md bg-[#f8f8f8] px-2 py-1 text-center text-[0.7rem] font-bold leading-tight text-[#555];
+  }
+
+  .rs-add-btn {
+    @apply w-full cursor-pointer rounded-[14px] border-0 bg-[#4a90e2] py-4 text-base font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)] transition hover:brightness-[1.03] active:brightness-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2];
+  }
+}
