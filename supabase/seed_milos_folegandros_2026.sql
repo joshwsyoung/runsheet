@@ -35,7 +35,7 @@ BEGIN
     ('2026-05-27'::date, 'Wed · Gundari, Folegandros'),
     ('2026-05-28'::date, 'Thu · Gundari, Folegandros'),
     ('2026-05-29'::date, 'Fri · Gundari → Santorini'),
-    ('2026-05-30'::date, 'Sat · Santorini → Home'),
+    ('2026-05-30'::date, 'Sat · Santorini → Home')
   ) AS t(d, lbl);
 
   INSERT INTO public.slots (day_id, start_at, end_at, activity_type, title, description, description_bullets, booking_ref, contact_info, open_ended, sort_order)
