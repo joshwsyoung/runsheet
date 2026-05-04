@@ -5,7 +5,7 @@ export default async function RunsheetPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ day?: string; tab?: string; sv?: string }>;
+  searchParams: Promise<{ day?: string; tab?: string; sv?: string; error?: string }>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
@@ -16,6 +16,7 @@ export default async function RunsheetPage({
         day: sp.day,
         tab: sp.tab,
         sv: sp.sv,
+        error: sp.error,
       }}
     />
   );

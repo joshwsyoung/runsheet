@@ -1,12 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { RunsheetDb } from "@/lib/supabase/db-client";
+import { upsertRunsheetDays } from "@/lib/runsheet-days";
 
-export async function ensureRunsheetDays(runsheetId: string, dayDates: string[]) {
-  const supabase = await createClient();
-  const rows = dayDates.map((day_date) => ({ runsheet_id: runsheetId, day_date }));
-  if (rows.length === 0) return;
-  await supabase.from("runsheet_days").upsert(rows, {
-    onConflict: "runsheet_id,day_date",
-  });
+export async function ensureRunsheetDays(
+  runsheetId: string,
+  dayDates: string[],
+  client?: RunsheetDb,
+) {
+  const supabase = client ?? (await createClient());
+  await upsertRunsheetDays(supabase, runsheetId, dayDates);
 }

@@ -33,6 +33,10 @@ export interface Database {
           title: string;
           owner_id: string;
           timezone: string;
+          /** Inclusive trip first day YYYY-MM-DD */
+          start_date: string;
+          /** Inclusive trip last day YYYY-MM-DD */
+          end_date: string;
           created_at: string;
           archived_at: string | null;
         };
@@ -41,6 +45,8 @@ export interface Database {
           title: string;
           owner_id: string;
           timezone?: string;
+          start_date: string;
+          end_date: string;
           created_at?: string;
           archived_at?: string | null;
         };
@@ -49,6 +55,8 @@ export interface Database {
           title?: string;
           owner_id?: string;
           timezone?: string;
+          start_date?: string;
+          end_date?: string;
           created_at?: string;
           archived_at?: string | null;
         };

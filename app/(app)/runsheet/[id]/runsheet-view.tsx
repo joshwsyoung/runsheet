@@ -6,10 +6,16 @@ import { ensureRunsheetDays } from "@/app/actions/days";
 import { inviteToRunsheet } from "@/app/actions/invites";
 import { toggleChecklistItem, addChecklistItem } from "@/app/actions/checklist";
 import { activityMeta } from "@/lib/activity-types";
-import { todayYmdInTz, weekFromAnchorYmd, weekRangeLabel } from "@/lib/dates";
+import {
+  todayYmdInTz,
+  eachYmdInclusive,
+  clampYmdToRange,
+} from "@/lib/dates";
 import { bulletsFromRow, slotHm } from "@/lib/slot-display";
 import type { Database } from "@/lib/database.types";
 import { PrintButton } from "@/components/print-button";
+import { RunsheetDayScroller } from "@/components/runsheet-day-scroller";
+import { updateRunsheetTripDates } from "@/app/actions/runsheets";
 
 type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
@@ -33,12 +39,18 @@ function q(
   return s ? `/runsheet/${id}?${s}` : `/runsheet/${id}`;
 }
 
+const TRIP_ERROR_COPY: Record<string, string> = {
+  "missing-trip-dates": "Start and end date are required.",
+  "invalid-trip-dates": "End date must be on or after the start date.",
+  "trip-update-failed": "Could not save dates. Try again.",
+};
+
 export async function RunsheetView({
   id,
   searchParams,
 }: {
   id: string;
-  searchParams: { day?: string; tab?: string; sv?: string };
+  searchParams: { day?: string; tab?: string; sv?: string; error?: string };
 }) {
   const supabase = await createClient();
   const {
@@ -48,20 +60,27 @@ export async function RunsheetView({
 
   const { data: runsheet, error: rsErr } = await supabase
     .from("runsheets")
-    .select("id, title, owner_id, timezone")
+    .select("id, title, owner_id, timezone, start_date, end_date")
     .eq("id", id)
     .maybeSingle();
 
   if (rsErr || !runsheet) notFound();
 
   const tz = runsheet.timezone || "UTC";
-  const dayParam = searchParams.day;
-  const focusYmd =
-    dayParam && DateTime.fromISO(dayParam, { zone: tz }).isValid
-      ? dayParam
-      : todayYmdInTz(tz);
+  const spanMin = runsheet.start_date;
+  const spanMax = runsheet.end_date;
 
-  const { mondayYmd, labels } = weekFromAnchorYmd(focusYmd, tz);
+  const dayParam = searchParams.day;
+  const preliminaryFocus =
+    dayParam && DateTime.fromISO(dayParam, { zone: tz }).isValid ? dayParam : todayYmdInTz(tz);
+
+  const carouselMin =
+    DateTime.fromISO(spanMin, { zone: tz }).minus({ days: 1 }).toISODate() ?? spanMin;
+  const carouselMax =
+    DateTime.fromISO(spanMax, { zone: tz }).plus({ days: 1 }).toISODate() ?? spanMax;
+
+  const labels = eachYmdInclusive(carouselMin, carouselMax, tz);
+  const focusYmd = clampYmdToRange(preliminaryFocus, carouselMin, carouselMax, tz);
   await ensureRunsheetDays(id, labels);
 
   const { data: days } = await supabase
@@ -115,29 +134,40 @@ export async function RunsheetView({
 
   const invites = (invitesRaw ?? []) as InviteRow[];
 
+  const { data: memberRow } = await supabase
+    .from("runsheet_members")
+    .select("role")
+    .eq("runsheet_id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const canEditTrip = isOwner || memberRow?.role === "editor";
+
   const tab = searchParams.tab === "schedule" ? "schedule" : "list";
   const sv = searchParams.sv === "all" ? "all" : "hours";
 
   const focusSlots = slotsByDay[focusYmd] ?? [];
-  const focusLabel = DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM");
-  const weekLabel = weekRangeLabel(mondayYmd, tz);
-  const prevFocus =
-    DateTime.fromISO(focusYmd, { zone: tz }).minus({ days: 7 }).toISODate() ?? focusYmd;
-  const nextFocus =
-    DateTime.fromISO(focusYmd, { zone: tz }).plus({ days: 7 }).toISODate() ?? focusYmd;
 
   function navDay(day: string) {
     if (tab === "list") return q(id, { day });
     return q(id, { day, tab: "schedule", sv });
   }
 
-  const contextLine = focusDay?.label
-    ? `${focusLabel} · ${focusDay.label}`
-    : focusDay?.is_special
-      ? `${focusLabel} · special day`
-      : focusLabel;
+  const dayChips = labels.map((ymd) => ({ ymd, href: navDay(ymd) }));
 
   const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
+
+  const tripStartFmt = DateTime.fromISO(runsheet.start_date, { zone: tz });
+  const tripEndFmt = DateTime.fromISO(runsheet.end_date, { zone: tz });
+  const tripRangeLabel =
+    tripStartFmt.toFormat("d MMM yyyy") === tripEndFmt.toFormat("d MMM yyyy")
+      ? tripStartFmt.toFormat("d MMM yyyy")
+      : `${tripStartFmt.toFormat("d MMM yyyy")} – ${tripEndFmt.toFormat("d MMM yyyy")}`;
+
+  const tripErrorCopy = searchParams.error
+    ? (TRIP_ERROR_COPY[searchParams.error] ??
+      "Something went wrong with the dates. Try again.")
+    : null;
 
   return (
     <div
@@ -145,85 +175,85 @@ export async function RunsheetView({
       data-print-title={runsheet.title}
     >
       <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 border-transparent bg-white shadow-none sm:rounded-[24px] sm:border sm:border-[#eeeeee] sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-        <div className="flex justify-around border-b border-[#eeeeee] bg-white py-5 text-center">
-          <div>
+        <div className="flex items-start justify-between gap-3 border-b border-[#eeeeee] bg-white px-4 py-5">
+          <div className="min-w-0">
             <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
               Trip
             </span>
-            <span className="mt-0.5 block text-[1.05rem] font-bold">{runsheet.title}</span>
+            <h1 className="mt-0.5 text-[1.1rem] font-bold leading-snug">{runsheet.title}</h1>
+            <p className="mt-1 text-[0.8rem] text-[#666]">{tripRangeLabel}</p>
+            {canEditTrip ? (
+              <form
+                action={updateRunsheetTripDates}
+                className="no-print mt-3 flex flex-col gap-2 border-t border-[#eeeeee] pt-3"
+              >
+                <input type="hidden" name="runsheet_id" value={id} />
+                <input type="hidden" name="return_day" value={focusYmd} />
+                <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+                  Trip dates
+                </span>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="flex min-w-[7rem] flex-1 flex-col gap-1">
+                    <span className="text-[0.65rem] font-bold text-[#999]">Start</span>
+                    <input
+                      type="date"
+                      name="start_date"
+                      required
+                      defaultValue={runsheet.start_date}
+                      className="rounded-xl border border-[#eeeeee] px-2 py-1.5 text-sm tabular-nums"
+                    />
+                  </label>
+                  <label className="flex min-w-[7rem] flex-1 flex-col gap-1">
+                    <span className="text-[0.65rem] font-bold text-[#999]">End</span>
+                    <input
+                      type="date"
+                      name="end_date"
+                      required
+                      defaultValue={runsheet.end_date}
+                      className="rounded-xl border border-[#eeeeee] px-2 py-1.5 text-sm tabular-nums"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-[#4a90e2] px-3 py-2 text-xs font-bold text-white shadow-[0_2px_8px_rgba(74,144,226,0.2)]"
+                  >
+                    Save
+                  </button>
+                </div>
+              </form>
+            ) : null}
           </div>
-          <div>
-            <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
-              Focus
-            </span>
-            <span className="mt-0.5 block text-[1.05rem] font-bold text-[#4a90e2]">
-              {focusLabel}
-            </span>
-          </div>
-          <div>
-            <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
-              Slots
-            </span>
-            <span className="mt-0.5 block text-[1.05rem] font-bold">{focusSlots.length}</span>
+          <div className="no-print flex shrink-0 flex-col items-end gap-1 pt-1 text-right">
+            <Link
+              href="/dashboard"
+              className="text-[0.72rem] font-bold text-[#4a90e2] no-underline hover:underline"
+            >
+              Runsheets
+            </Link>
+            <Link href="/docs/api" className="text-[0.65rem] font-bold text-[#999] no-underline hover:text-[#4a90e2]">
+              API
+            </Link>
           </div>
         </div>
 
+        {tripErrorCopy ? (
+          <div
+            className="no-print border-b border-[#eeeeee] bg-red-50 px-4 py-2 text-center text-[0.8rem] font-bold text-red-800"
+            role="alert"
+          >
+            {tripErrorCopy}
+          </div>
+        ) : null}
+
         <div className="border-b border-[#eeeeee] px-3 py-3">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <Link
-              href={navDay(prevFocus)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#eeeeee] bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)] no-underline"
-              aria-label="Previous week"
-            >
-              ◀
-            </Link>
-            <div className="min-w-0 text-center">
-              <p className="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Week</p>
-              <p className="text-[0.85rem] font-bold text-[#333]">{weekLabel}</p>
-            </div>
-            <Link
-              href={navDay(nextFocus)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#eeeeee] bg-white text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)] no-underline"
-              aria-label="Next week"
-            >
-              ▶
-            </Link>
-          </div>
-          <div className="flex justify-between gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {labels.map((ymd) => {
-              const dt = DateTime.fromISO(ymd, { zone: tz });
-              const isFocus = ymd === focusYmd;
-              const isToday = ymd === todayYmdInTz(tz);
-              const chip = isFocus
-                ? "border-2 border-[#4a90e2] bg-[#4a90e2] font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
-                : isToday
-                  ? "border-2 border-[#4a90e2] bg-[#eef6ff] font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]"
-                  : "border border-[#eeeeee] bg-white font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]";
-              return (
-                <Link
-                  key={ymd}
-                  href={navDay(ymd)}
-                  className={`flex h-[56px] w-[46px] shrink-0 flex-col items-center justify-center rounded-xl no-underline ${chip}`}
-                >
-                  <span className="text-[0.55rem] font-bold uppercase opacity-80">
-                    {dt.toFormat("ccc")}
-                  </span>
-                  <span className="text-sm font-bold">{dt.toFormat("d")}</span>
-                </Link>
-              );
-            })}
-          </div>
-          <div className="flex items-center justify-between gap-2 border-t border-[#eeeeee] pt-2">
-            <Link
-              href="/dashboard"
-              className="text-[0.8rem] font-bold text-[#777] no-underline hover:text-[#4a90e2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4a90e2]"
-            >
-              ← All
-            </Link>
-            <span className="text-center text-[0.72rem] font-bold text-[#999]">{contextLine}</span>
-            <span className="no-print">
-              <PrintButton />
-            </span>
+          <RunsheetDayScroller
+            tz={tz}
+            chips={dayChips}
+            focusYmd={focusYmd}
+            todayYmd={todayYmdInTz(tz)}
+          />
+          <div className="no-print flex justify-end border-t border-[#eeeeee] pt-2">
+            <PrintButton />
           </div>
         </div>
 
@@ -252,9 +282,6 @@ export async function RunsheetView({
             className="flex-1 bg-white px-[15px] pb-4 pt-0"
             id="view-list"
           >
-            <p className="mb-3 text-center text-[0.7rem] font-bold uppercase tracking-wide text-[#999]">
-              This day · Start · End · Description
-            </p>
             {focusSlots.length === 0 ? (
               <p className="text-center text-sm text-[#666]">No slots yet.</p>
             ) : (

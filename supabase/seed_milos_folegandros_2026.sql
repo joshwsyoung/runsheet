@@ -10,15 +10,15 @@
 
 DO $$
 DECLARE
-  v_owner uuid := '00000000-0000-0000-0000-000000000001'::uuid;
+  v_owner uuid := 'cc65d65e-bc2f-4dfd-8648-c704478b2d78'::uuid;
   v_rs uuid;
 BEGIN
   IF v_owner = '00000000-0000-0000-0000-000000000001'::uuid THEN
     RAISE EXCEPTION 'Replace v_owner with your auth.users UUID (see comment at top of this file)';
   END IF;
 
-  INSERT INTO public.runsheets (title, owner_id, timezone)
-  VALUES ('Milos & Folegandros 2026', v_owner, 'Europe/London')
+  INSERT INTO public.runsheets (title, owner_id, timezone, start_date, end_date)
+  VALUES ('Milos & Folegandros 2026', v_owner, 'Europe/London', '2026-05-19'::date, '2026-05-30'::date)
   RETURNING id INTO v_rs;
 
   INSERT INTO public.runsheet_days (runsheet_id, day_date, label, is_special)

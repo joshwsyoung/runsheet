@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { RunsheetDb } from "@/lib/supabase/db-client";
 import { localWallToUtcIso } from "@/lib/dates";
 import { normalizeActivityType } from "@/lib/activity-types";
 
@@ -41,8 +42,8 @@ export async function createSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
-}) {
-  const supabase = await createClient();
+}, client?: RunsheetDb) {
+  const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
   const startIso = localWallToUtcIso(input.dayYmd, sh, sm, input.timeZone);
   const endIso = endIsoForSlot(
@@ -79,12 +80,12 @@ export async function createSlot(input: {
       contact_info: input.contactInfo ?? null,
       open_ended: Boolean(input.openEnd),
     })
-    .select("id")
-    .single();
+    .select("id");
 
-  if (error || !data) return null;
+  const newId = data?.[0]?.id;
+  if (error || !newId) return null;
   revalidatePath(`/runsheet/${input.runsheetId}`);
-  return data.id as string;
+  return newId as string;
 }
 
 export async function updateSlot(input: {
@@ -102,8 +103,8 @@ export async function updateSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
-}) {
-  const supabase = await createClient();
+}, client?: RunsheetDb) {
+  const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
   const startIso = localWallToUtcIso(input.dayYmd, sh, sm, input.timeZone);
   const endIso = endIsoForSlot(
@@ -147,10 +148,19 @@ export async function updateSlot(input: {
   revalidatePath(`/runsheet/${input.runsheetId}/activity/${input.slotId}`);
 }
 
-export async function deleteSlot(runsheetId: string, slotId: string) {
-  const supabase = await createClient();
+/** Deletes a slot without redirecting (for API routes). */
+export async function deleteSlotRecord(
+  runsheetId: string,
+  slotId: string,
+  client?: RunsheetDb,
+) {
+  const supabase = client ?? (await createClient());
   await supabase.from("slots").delete().eq("id", slotId);
   revalidatePath(`/runsheet/${runsheetId}`);
+}
+
+export async function deleteSlot(runsheetId: string, slotId: string) {
+  await deleteSlotRecord(runsheetId, slotId);
   redirect(`/runsheet/${runsheetId}`);
 }
 

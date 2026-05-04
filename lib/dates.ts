@@ -4,6 +4,45 @@ export function todayYmdInTz(timeZone: string): string {
   return DateTime.now().setZone(timeZone).toISODate() ?? "";
 }
 
+/** Consecutive inclusive calendar dates from startYmd through endYmd (in `timeZone`). */
+export function eachYmdInclusive(
+  startYmd: string,
+  endYmd: string,
+  timeZone: string,
+): string[] {
+  let start = DateTime.fromISO(startYmd, { zone: timeZone }).startOf("day");
+  let end = DateTime.fromISO(endYmd, { zone: timeZone }).startOf("day");
+  if (!start.isValid || !end.isValid) return [];
+  if (end < start) {
+    const t = start;
+    start = end;
+    end = t;
+  }
+  const out: string[] = [];
+  for (let d = start; d <= end; d = d.plus({ days: 1 })) {
+    const iso = d.toISODate();
+    if (iso) out.push(iso);
+  }
+  return out;
+}
+
+/** Clamp `ymd` to [minYmd, maxYmd], inclusive by calendar order in zone. */
+export function clampYmdToRange(
+  ymd: string,
+  minYmd: string,
+  maxYmd: string,
+  timeZone: string,
+): string {
+  const dt = DateTime.fromISO(ymd, { zone: timeZone }).startOf("day");
+  const min = DateTime.fromISO(minYmd, { zone: timeZone }).startOf("day");
+  const max = DateTime.fromISO(maxYmd, { zone: timeZone }).startOf("day");
+  if (!min.isValid || !max.isValid) return ymd;
+  if (!dt.isValid) return min.toISODate() ?? minYmd;
+  if (dt < min) return min.toISODate() ?? minYmd;
+  if (dt > max) return max.toISODate() ?? maxYmd;
+  return ymd;
+}
+
 export function weekFromAnchorYmd(
   anchorYmd: string,
   timeZone: string,

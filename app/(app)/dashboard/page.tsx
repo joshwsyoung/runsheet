@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
 import { createRunsheet, archiveRunsheet } from "@/app/actions/runsheets";
 import { signOut } from "@/app/actions/auth";
 
 const CREATE_ERROR_COPY: Record<string, string> = {
   "missing-title": "Add a title before creating a runsheet.",
+  "missing-dates": "Choose a trip start date and end date.",
+  "invalid-dates": "End date must be on or after the start date.",
   "create-failed": "Something went wrong creating your runsheet. Try again.",
 };
 
@@ -30,9 +33,12 @@ export default async function DashboardPage({
 
   const { data: runsheets } = await supabase
     .from("runsheets")
-    .select("id, title, timezone, created_at, archived_at")
+    .select("id, title, timezone, start_date, end_date, created_at, archived_at")
     .is("archived_at", null)
     .order("created_at", { ascending: false });
+
+  const defaultStartUtc = DateTime.utc().toISODate() ?? "";
+  const defaultEndUtc = DateTime.utc().plus({ days: 6 }).toISODate() ?? "";
 
   return (
     <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-0 pb-16 sm:p-2.5">
@@ -44,14 +50,22 @@ export default async function DashboardPage({
               Signed in
             </p>
           </div>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-xl border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-bold text-[#555]"
+          <div className="flex flex-col items-end gap-2">
+            <Link
+              href="/docs/api"
+              className="text-xs font-bold text-[#4a90e2] no-underline hover:underline"
             >
-              Sign out
-            </button>
-          </form>
+              API docs
+            </Link>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="rounded-xl border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-bold text-[#555]"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </header>
 
         <div className="space-y-3 p-4">
@@ -73,6 +87,28 @@ export default async function DashboardPage({
               required
               className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
             />
+            <div className="flex flex-wrap gap-2">
+              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
+                <span className="text-[0.62rem] font-bold uppercase text-[#999]">Trip starts</span>
+                <input
+                  type="date"
+                  name="start_date"
+                  required
+                  defaultValue={defaultStartUtc}
+                  className="rounded-xl border border-[#eeeeee] px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+                />
+              </label>
+              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
+                <span className="text-[0.62rem] font-bold uppercase text-[#999]">Trip ends</span>
+                <input
+                  type="date"
+                  name="end_date"
+                  required
+                  defaultValue={defaultEndUtc}
+                  className="rounded-xl border border-[#eeeeee] px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+                />
+              </label>
+            </div>
             <input type="hidden" name="timezone" value="UTC" />
             <button
               type="submit"
@@ -103,6 +139,11 @@ export default async function DashboardPage({
                       >
                         {r.title}
                       </Link>
+                      <p className="text-[0.72rem] text-[#888] tabular-nums">
+                        {r.start_date === r.end_date
+                          ? DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")
+                          : `${DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")} – ${DateTime.fromISO(r.end_date).toFormat("d MMM yyyy")}`}
+                      </p>
                       <div className="flex items-center gap-2">
                         <span className="rounded-full bg-[#eef6ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#4a90e2]">
                           {r.timezone}
