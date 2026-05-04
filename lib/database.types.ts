@@ -225,6 +225,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      create_runsheet: {
+        Args: { p_title: string; p_timezone?: string };
+        Returns: string;
+      };
       accept_runsheet_invite: {
         Args: { invite_token: string };
         Returns: undefined;

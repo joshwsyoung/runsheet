@@ -4,7 +4,24 @@ import { createClient } from "@/lib/supabase/server";
 import { createRunsheet, archiveRunsheet } from "@/app/actions/runsheets";
 import { signOut } from "@/app/actions/auth";
 
-export default async function DashboardPage() {
+const CREATE_ERROR_COPY: Record<string, string> = {
+  "missing-title": "Add a title before creating a runsheet.",
+  "create-failed": "Something went wrong creating your runsheet. Try again.",
+};
+
+function createRunsheetErrorMessage(code: string | undefined) {
+  if (!code) return null;
+  return CREATE_ERROR_COPY[code] ?? "Could not create your runsheet. Try again.";
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorCode } = await searchParams;
+  const createErrorMessage = createRunsheetErrorMessage(errorCode);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,6 +56,14 @@ export default async function DashboardPage() {
 
         <div className="space-y-3 p-4">
           <form action={createRunsheet} className="rs-card space-y-3">
+            {createErrorMessage ? (
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                {createErrorMessage}
+              </p>
+            ) : null}
             <p className="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
               New runsheet
             </p>

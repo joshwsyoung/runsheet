@@ -17,16 +17,39 @@ export async function createRunsheet(formData: FormData) {
   if (!user) {
     redirect("/login");
   }
-  const { data, error } = await supabase
-    .from("runsheets")
-    .insert({ title, owner_id: user.id, timezone })
-    .select("id")
-    .single();
-  if (error || !data) {
-    redirect("/dashboard?error=create-failed");
+  const { data: rpcId, error: rpcError } = await supabase.rpc(
+    "create_runsheet",
+    { p_title: title, p_timezone: timezone },
+  );
+
+  let runsheetId: string | null =
+    typeof rpcId === "string" && rpcId.length > 0 ? rpcId : null;
+
+  if (!runsheetId) {
+    const { data: inserted, error: insertError } = await supabase
+      .from("runsheets")
+      .insert({ title, owner_id: user.id, timezone })
+      .select("id");
+    runsheetId = inserted?.[0]?.id ?? null;
+
+    if (insertError || !runsheetId) {
+      console.error("[createRunsheet] rpc", {
+        message: rpcError?.message,
+        code: rpcError?.code,
+        details: rpcError?.details,
+      });
+      console.error("[createRunsheet] insert", {
+        message: insertError?.message,
+        code: insertError?.code,
+        details: insertError?.details,
+        hint: insertError?.hint,
+      });
+      redirect("/dashboard?error=create-failed");
+    }
   }
+
   revalidatePath("/dashboard");
-  redirect(`/runsheet/${data.id}`);
+  redirect(`/runsheet/${runsheetId}`);
 }
 
 export async function archiveRunsheet(formData: FormData) {

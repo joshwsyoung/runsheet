@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
+import { mergeSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import { getSupabasePublishableEnv } from "@/lib/supabase/config";
 
 export async function createClient() {
@@ -18,7 +19,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, mergeSupabaseCookieOptions(options)),
             );
           } catch {
             /* set from Server Component — middleware refreshes session */
