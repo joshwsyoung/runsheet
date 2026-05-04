@@ -25,8 +25,8 @@ export default async function NewSlotPage({
   const dayYmd = dayParam && dayParam.length >= 8 ? dayParam : todayYmdInTz(tz);
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-2.5 pb-10">
-      <div className="w-full max-w-[450px] space-y-4 pt-4">
+    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-0 pb-10 sm:p-2.5">
+      <div className="w-full max-w-[450px] space-y-4 pt-2 sm:pt-4">
         <div className="flex items-center justify-between">
           <Link
             href={`/runsheet/${id}?day=${dayYmd}`}

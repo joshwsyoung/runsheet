@@ -48,8 +48,8 @@ export default async function ActivityPage({
   const endHm = s.open_ended ? "" : slotHm(s.end_at, tz);
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-2.5 pb-10 print:pb-4">
-      <div className="w-full max-w-[450px] space-y-3 pt-3">
+    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-0 pb-10 print:pb-4 sm:p-2.5">
+      <div className="w-full max-w-[450px] space-y-3 pt-0 sm:pt-3">
         <header className="flex items-center justify-between">
           <Link
             href={`/runsheet/${runsheetId}?day=${dayYmd}`}
@@ -62,7 +62,7 @@ export default async function ActivityPage({
           </span>
         </header>
 
-        <div className="overflow-hidden rounded-[24px] border border-[#eeeeee] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
+        <div className="overflow-hidden rounded-none border-0 bg-white shadow-none sm:rounded-[24px] sm:border sm:border-[#eeeeee] sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
           <div
             className="h-28 w-full bg-cover bg-center"
             style={

@@ -35,8 +35,8 @@ export default async function DashboardPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-2.5 pb-16">
-      <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-[24px] border border-[#eeeeee] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
+    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-0 pb-16 sm:p-2.5">
+      <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 border-transparent bg-white shadow-none sm:rounded-[24px] sm:border sm:border-[#eeeeee] sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
         <header className="flex items-center justify-between border-b border-[#eeeeee] px-4 py-4">
           <div>
             <h1 className="text-lg font-bold text-[#333]">Runsheets</h1>
