@@ -30,11 +30,11 @@ export function LinkPreviewButton({ slotId }: { slotId: string }) {
         type="button"
         onClick={refresh}
         disabled={loading}
-        className="rounded-xl border border-[#eeeeee] bg-white px-3 py-2 text-xs font-bold text-[#4a90e2] disabled:opacity-50"
+        className="rounded-xl border border-rs-border bg-rs-surface px-3 py-2 text-xs font-bold text-rs-primary disabled:opacity-50"
       >
         {loading ? "Fetching…" : "Refresh link preview"}
       </button>
-      {message ? <p className="text-xs text-[#666]">{message}</p> : null}
+      {message ? <p className="text-xs text-rs-muted">{message}</p> : null}
     </div>
   );
 }

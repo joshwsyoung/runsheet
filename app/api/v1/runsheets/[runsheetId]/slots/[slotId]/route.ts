@@ -68,6 +68,9 @@ export async function PATCH(request: Request, context: Ctx) {
     : Array.isArray(body.description_bullets)
       ? (body.description_bullets as unknown[]).map(String)
       : undefined;
+  const todosFromBody = Array.isArray(body.todos)
+    ? (body.todos as unknown[]).map(String)
+    : undefined;
   const linkUrl =
     body.linkUrl != null ? String(body.linkUrl).trim() || null : body.link_url != null
       ? String(body.link_url).trim() || null
@@ -102,6 +105,7 @@ export async function PATCH(request: Request, context: Ctx) {
       bookingRef,
       contactInfo,
       openEnd,
+      ...(todosFromBody !== undefined ? { todos: todosFromBody } : {}),
     },
     auth.supabase,
   );

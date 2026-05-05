@@ -28,6 +28,7 @@ export async function inviteToRunsheet(formData: FormData) {
     invited_by: user.id,
   });
   revalidatePath(`/runsheet/${runsheetId}`);
+  revalidatePath(`/runsheet/${runsheetId}/settings`);
 }
 
 export async function acceptInvite(token: string) {

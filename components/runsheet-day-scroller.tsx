@@ -39,10 +39,10 @@ export function RunsheetDayScroller({
           const isFocus = ymd === focusYmd;
           const isToday = ymd === todayYmd;
           const chip = isFocus
-            ? "border-2 border-[#4a90e2] bg-[#4a90e2] font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+            ? "border-2 border-rs-primary bg-rs-primary font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
             : isToday
-              ? "border-2 border-[#4a90e2] bg-[#eef6ff] font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]"
-              : "border border-[#eeeeee] bg-white font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.02)]";
+              ? "border-2 border-rs-primary bg-rs-today font-bold text-rs-secondary shadow-[0_2px_4px_rgba(0,0,0,0.02)]"
+              : "border border-rs-border bg-rs-surface font-bold text-rs-secondary shadow-[0_2px_4px_rgba(0,0,0,0.02)]";
           return (
             <Link
               key={ymd}

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { RunsheetDb } from "@/lib/supabase/db-client";
-import { localWallToUtcIso } from "@/lib/dates";
+import { localWallRangeEndUtcIso, localWallToUtcIso } from "@/lib/dates";
 import { normalizeActivityType } from "@/lib/activity-types";
 
 function endIsoForSlot(
@@ -24,8 +24,7 @@ function endIsoForSlot(
     );
   }
   const ehmm = endHm ?? startHm;
-  const [eh, em] = ehmm.split(":").map(Number);
-  return localWallToUtcIso(dayYmd, eh, em, timeZone);
+  return localWallRangeEndUtcIso(dayYmd, timeZone, startHm, ehmm);
 }
 
 export async function createSlot(input: {
@@ -42,6 +41,7 @@ export async function createSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
+  todos?: string[];
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -64,6 +64,7 @@ export async function createSlot(input: {
   if (!day) return null;
 
   const bullets = input.descriptionBullets?.filter(Boolean) ?? [];
+  const todos = input.todos?.map((s) => s.trim()).filter(Boolean) ?? [];
 
   const { data, error } = await supabase
     .from("slots")
@@ -75,6 +76,7 @@ export async function createSlot(input: {
       title: input.title || "Untitled",
       description: input.description ?? null,
       description_bullets: bullets,
+      todos,
       link_url: input.linkUrl || null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
@@ -103,6 +105,7 @@ export async function updateSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
+  todos?: string[];
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -125,6 +128,10 @@ export async function updateSlot(input: {
   if (!day) return;
 
   const bullets = input.descriptionBullets?.filter(Boolean) ?? [];
+  const todosClean =
+    input.todos !== undefined
+      ? input.todos.map((s) => s.trim()).filter(Boolean)
+      : undefined;
 
   await supabase
     .from("slots")
@@ -136,7 +143,8 @@ export async function updateSlot(input: {
       title: input.title || "Untitled",
       description: input.description ?? null,
       description_bullets: bullets,
-      link_url: input.linkUrl || null,
+      ...(todosClean !== undefined ? { todos: todosClean } : {}),
+      link_url: input.linkUrl ?? null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
       open_ended: Boolean(input.openEnd),
@@ -190,6 +198,11 @@ export async function updateSlotFromForm(formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  const todosRaw = String(formData.get("todos") ?? "");
+  const todos = todosRaw
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   await updateSlot({
     runsheetId,
@@ -206,6 +219,7 @@ export async function updateSlotFromForm(formData: FormData) {
     bookingRef,
     contactInfo,
     openEnd,
+    todos,
   });
   redirect(`/runsheet/${runsheetId}?day=${dayYmd}`);
 }
@@ -228,6 +242,11 @@ export async function createSlotFromForm(formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  const todosRaw = String(formData.get("todos") ?? "");
+  const todos = todosRaw
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const id = await createSlot({
     runsheetId,
@@ -243,6 +262,7 @@ export async function createSlotFromForm(formData: FormData) {
     bookingRef,
     contactInfo,
     openEnd,
+    todos,
   });
   if (id) {
     redirect(`/runsheet/${runsheetId}/activity/${id}`);

@@ -36,12 +36,13 @@ alter table public.runsheets
   add constraint runsheets_trip_dates_order check (start_date <= end_date);
 
 drop function if exists public.create_runsheet(text, text);
+drop function if exists public.create_runsheet(text, text, date, date);
 
 create or replace function public.create_runsheet(
   p_title text,
-  p_timezone text default 'UTC',
   p_start_date date,
-  p_end_date date
+  p_end_date date,
+  p_timezone text default 'UTC'
 )
 returns uuid
 language plpgsql
@@ -80,5 +81,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_runsheet(text, text, date, date) from PUBLIC;
-grant execute on function public.create_runsheet(text, text, date, date) to authenticated;
+revoke all on function public.create_runsheet(text, date, date, text) from PUBLIC;
+grant execute on function public.create_runsheet(text, date, date, text) to authenticated;

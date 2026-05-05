@@ -150,6 +150,7 @@ export interface Database {
           title: string | null;
           description: string | null;
           description_bullets: Json;
+          todos: Json;
           link_url: string | null;
           preview_title: string | null;
           preview_description: string | null;
@@ -171,6 +172,7 @@ export interface Database {
           title?: string | null;
           description?: string | null;
           description_bullets?: Json;
+          todos?: Json;
           link_url?: string | null;
           preview_title?: string | null;
           preview_description?: string | null;
@@ -192,6 +194,7 @@ export interface Database {
           title?: string | null;
           description?: string | null;
           description_bullets?: Json;
+          todos?: Json;
           link_url?: string | null;
           preview_title?: string | null;
           preview_description?: string | null;

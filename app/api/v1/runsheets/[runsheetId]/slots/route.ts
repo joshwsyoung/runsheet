@@ -66,6 +66,9 @@ export async function POST(request: Request, context: Ctx) {
     : Array.isArray(body.description_bullets)
       ? (body.description_bullets as unknown[]).map(String)
       : undefined;
+  const todos = Array.isArray(body.todos)
+    ? (body.todos as unknown[]).map(String)
+    : undefined;
   const linkUrl =
     body.linkUrl != null ? String(body.linkUrl).trim() || null : body.link_url != null
       ? String(body.link_url).trim() || null
@@ -106,6 +109,7 @@ export async function POST(request: Request, context: Ctx) {
       bookingRef,
       contactInfo,
       openEnd,
+      todos,
     },
     auth.supabase,
   );

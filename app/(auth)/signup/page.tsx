@@ -10,11 +10,11 @@ export default async function SignupPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#333]">Create account</h1>
-        <p className="mt-1 text-sm text-[#666]">Email and password for your runsheets.</p>
+        <h1 className="text-2xl font-bold text-rs-text">Create account</h1>
+        <p className="mt-1 text-sm text-rs-muted">Email and password for your runsheets.</p>
       </div>
       {sp.confirm ? (
-        <div className="rs-card text-sm text-[#555]">
+        <div className="rs-card text-sm text-rs-secondary">
           Check your email to confirm your account, then return here to sign in.
         </div>
       ) : (
@@ -25,7 +25,7 @@ export default async function SignupPage({
             </p>
           ) : null}
           <div>
-            <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+            <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
               Email
             </label>
             <input
@@ -33,11 +33,11 @@ export default async function SignupPage({
               type="email"
               required
               autoComplete="email"
-              className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
             />
           </div>
           <div>
-            <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+            <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
               Password
             </label>
             <input
@@ -46,19 +46,19 @@ export default async function SignupPage({
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded-xl bg-[#4a90e2] py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+            className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
           >
             Sign up
           </button>
         </form>
       )}
-      <p className="text-center text-sm text-[#666]">
-        <Link className="font-bold text-[#4a90e2]" href="/login">
+      <p className="text-center text-sm text-rs-muted">
+        <Link className="font-bold text-rs-primary" href="/login">
           Already have an account?
         </Link>
       </p>

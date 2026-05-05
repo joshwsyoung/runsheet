@@ -94,16 +94,50 @@ export async function updateRunsheetTitle(runsheetId: string, title: string) {
   revalidatePath(`/runsheet/${runsheetId}`);
 }
 
+function settingsTripErrorSuffix(runsheetId: string, code: string) {
+  return `/runsheet/${runsheetId}/settings?error=${encodeURIComponent(code)}`;
+}
+
+export async function updateRunsheetBasics(formData: FormData) {
+  const runsheetId = String(formData.get("runsheet_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const timezone = String(formData.get("timezone") ?? "UTC").trim() || "UTC";
+  if (!runsheetId || !title) {
+    if (runsheetId) redirect(settingsTripErrorSuffix(runsheetId, "missing-title"));
+    redirect("/dashboard?error=missing-title");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("runsheets").update({ title, timezone }).eq("id", runsheetId);
+  if (error) {
+    redirect(settingsTripErrorSuffix(runsheetId, "save-failed"));
+  }
+  revalidatePath(`/runsheet/${runsheetId}`);
+  revalidatePath(`/runsheet/${runsheetId}/settings`);
+  redirect(`/runsheet/${runsheetId}/settings`);
+}
+
 export async function updateRunsheetTripDates(formData: FormData) {
   const runsheetId = String(formData.get("runsheet_id") ?? "").trim();
+  const returnTo = String(formData.get("return_to") ?? "").trim();
+  const settingsReturn = returnTo === "settings";
   const startDate = parseIsoDate(formData.get("start_date"));
   const endDate = parseIsoDate(formData.get("end_date"));
   if (!runsheetId || !startDate || !endDate) {
-    if (runsheetId) redirect(`/runsheet/${runsheetId}?error=missing-trip-dates`);
+    if (runsheetId) {
+      redirect(
+        settingsReturn
+          ? settingsTripErrorSuffix(runsheetId, "missing-trip-dates")
+          : `/runsheet/${runsheetId}?error=missing-trip-dates`,
+      );
+    }
     redirect("/dashboard?error=missing-dates");
   }
   if (startDate > endDate) {
-    redirect(`/runsheet/${runsheetId}?error=invalid-trip-dates`);
+    redirect(
+      settingsReturn
+        ? settingsTripErrorSuffix(runsheetId, "invalid-trip-dates")
+        : `/runsheet/${runsheetId}?error=invalid-trip-dates`,
+    );
   }
   const supabase = await createClient();
   const { error } = await supabase
@@ -111,9 +145,18 @@ export async function updateRunsheetTripDates(formData: FormData) {
     .update({ start_date: startDate, end_date: endDate })
     .eq("id", runsheetId);
   if (error) {
-    redirect(`/runsheet/${runsheetId}?error=trip-update-failed`);
+    redirect(
+      settingsReturn
+        ? settingsTripErrorSuffix(runsheetId, "trip-update-failed")
+        : `/runsheet/${runsheetId}?error=trip-update-failed`,
+    );
   }
   revalidatePath(`/runsheet/${runsheetId}`);
+  revalidatePath(`/runsheet/${runsheetId}/settings`);
+
+  if (settingsReturn) {
+    redirect(`/runsheet/${runsheetId}/settings`);
+  }
 
   const returnRaw = parseIsoDate(formData.get("return_day")) ?? startDate;
   const carouselMin =

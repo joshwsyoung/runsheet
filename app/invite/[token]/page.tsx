@@ -22,29 +22,29 @@ export default async function InvitePage({
   } = await supabase.auth.getUser();
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-4">
+    <div className="flex min-h-dvh justify-center bg-rs-page p-4">
       <div className="w-full max-w-[420px] space-y-4 pt-12">
         <div className="rs-card space-y-2">
-          <p className="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">Invitation</p>
-          <h1 className="text-xl font-bold text-[#333]">{peek.title}</h1>
-          <p className="text-sm text-[#666]">
+          <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">Invitation</p>
+          <h1 className="text-xl font-bold text-rs-text">{peek.title}</h1>
+          <p className="text-sm text-rs-muted">
             You have been invited to collaborate using{" "}
-            <span className="font-bold text-[#333]">{peek.email}</span>.
+            <span className="font-bold text-rs-text">{peek.email}</span>.
           </p>
         </div>
 
         {peek.accepted ? (
-          <div className="rs-card text-sm text-[#555]">This invite was already accepted.</div>
+          <div className="rs-card text-sm text-rs-secondary">This invite was already accepted.</div>
         ) : !user ? (
-          <div className="rs-card space-y-3 text-sm text-[#555]">
+          <div className="rs-card space-y-3 text-sm text-rs-secondary">
             <p>Sign in with the invited email to accept.</p>
             <Link
-              className="inline-flex w-full items-center justify-center rounded-xl bg-[#4a90e2] py-2.5 text-sm font-bold text-white no-underline shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+              className="inline-flex w-full items-center justify-center rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white no-underline shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
               href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`}
             >
               Sign in
             </Link>
-            <Link className="block text-center text-sm font-bold text-[#4a90e2]" href="/signup">
+            <Link className="block text-center text-sm font-bold text-rs-primary" href="/signup">
               Create account
             </Link>
           </div>
@@ -56,13 +56,13 @@ export default async function InvitePage({
                 {decodeURIComponent(error)}
               </p>
             ) : null}
-            <p className="text-sm text-[#666]">
-              Signed in as <span className="font-bold text-[#333]">{user.email}</span>. Accept to
+            <p className="text-sm text-rs-muted">
+              Signed in as <span className="font-bold text-rs-text">{user.email}</span>. Accept to
               open the runsheet.
             </p>
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#4a90e2] py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+              className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
             >
               Accept invite
             </button>

@@ -95,6 +95,40 @@ export function localWallToUtcIso(
   return dt.toUTC().toISO() ?? new Date().toISOString();
 }
 
+/**
+ * End instant for a wall-clock range starting on `startDayYmd`.
+ * If end time is strictly before start time on the same calendar day (e.g. 22:00–02:00), end is taken as the next calendar day.
+ * Equal times stay on the same day (same instant as start).
+ */
+export function localWallRangeEndUtcIso(
+  startDayYmd: string,
+  timeZone: string,
+  startHm: string,
+  endHm: string,
+): string {
+  const [sh, sm] = startHm.split(":").map(Number);
+  const [eh, em] = endHm.split(":").map(Number);
+  const startLocal = DateTime.fromISO(`${startDayYmd}T00:00:00`, { zone: timeZone }).set({
+    hour: sh,
+    minute: sm,
+    second: 0,
+    millisecond: 0,
+  });
+  let endLocal = DateTime.fromISO(`${startDayYmd}T00:00:00`, { zone: timeZone }).set({
+    hour: eh,
+    minute: em,
+    second: 0,
+    millisecond: 0,
+  });
+  if (!startLocal.isValid || !endLocal.isValid) {
+    return localWallToUtcIso(startDayYmd, eh, em, timeZone);
+  }
+  if (endLocal < startLocal) {
+    endLocal = endLocal.plus({ days: 1 });
+  }
+  return endLocal.toUTC().toISO() ?? new Date().toISOString();
+}
+
 export function formatUtcInZone(iso: string, timeZone: string, fmt: string): string {
   return DateTime.fromISO(iso, { zone: "utc" })
     .setZone(timeZone)

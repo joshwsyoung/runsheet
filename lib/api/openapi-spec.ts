@@ -69,6 +69,7 @@ export const openApiSpec = {
           title: { type: "string", nullable: true },
           description: { type: "string", nullable: true },
           description_bullets: { type: "array", items: { type: "string" } },
+          todos: { type: "array", items: { type: "string" }, description: "Prep to-dos before the activity" },
           link_url: { type: "string", nullable: true },
           booking_ref: { type: "string", nullable: true },
           contact_info: { type: "string", nullable: true },

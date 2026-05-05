@@ -41,26 +41,26 @@ export default async function DashboardPage({
   const defaultEndUtc = DateTime.utc().plus({ days: 6 }).toISODate() ?? "";
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#fcfcfc] p-0 pb-16 sm:p-2.5">
-      <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 border-transparent bg-white shadow-none sm:rounded-[24px] sm:border sm:border-[#eeeeee] sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)]">
-        <header className="flex items-center justify-between border-b border-[#eeeeee] px-4 py-4">
+    <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-16 sm:p-2.5">
+      <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 border-transparent bg-rs-surface shadow-none sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
+        <header className="flex items-center justify-between border-b border-rs-border px-4 py-4">
           <div>
-            <h1 className="text-lg font-bold text-[#333]">Runsheets</h1>
-            <p className="text-[0.72rem] font-bold uppercase tracking-wide text-[#999]">
+            <h1 className="text-lg font-bold text-rs-text">Runsheets</h1>
+            <p className="text-[0.72rem] font-bold uppercase tracking-wide text-rs-label">
               Signed in
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Link
-              href="/docs/api"
-              className="text-xs font-bold text-[#4a90e2] no-underline hover:underline"
+              href="/account"
+              className="text-xs font-bold text-rs-primary no-underline hover:underline"
             >
-              API docs
+              Account
             </Link>
             <form action={signOut}>
               <button
                 type="submit"
-                className="rounded-xl border border-[#eeeeee] bg-white px-3 py-1.5 text-xs font-bold text-[#555]"
+                className="rounded-xl border border-rs-border bg-rs-surface px-3 py-1.5 text-xs font-bold text-rs-secondary"
               >
                 Sign out
               </button>
@@ -78,74 +78,74 @@ export default async function DashboardPage({
                 {createErrorMessage}
               </p>
             ) : null}
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
               New runsheet
             </p>
             <input
               name="title"
               placeholder="Title (e.g. Greece 2026)"
               required
-              className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
             />
             <div className="flex flex-wrap gap-2">
               <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-[#999]">Trip starts</span>
+                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip starts</span>
                 <input
                   type="date"
                   name="start_date"
                   required
                   defaultValue={defaultStartUtc}
-                  className="rounded-xl border border-[#eeeeee] px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+                  className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
                 />
               </label>
               <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-[#999]">Trip ends</span>
+                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip ends</span>
                 <input
                   type="date"
                   name="end_date"
                   required
                   defaultValue={defaultEndUtc}
-                  className="rounded-xl border border-[#eeeeee] px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+                  className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
                 />
               </label>
             </div>
             <input type="hidden" name="timezone" value="UTC" />
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#4a90e2] py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+              className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
             >
               Create
             </button>
           </form>
 
           <div className="pt-2">
-            <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+            <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
               Yours
             </p>
             <div className="space-y-2">
               {(runsheets ?? []).length === 0 ? (
-                <p className="text-sm text-[#666]">No runsheets yet — create one above.</p>
+                <p className="text-sm text-rs-muted">No runsheets yet — create one above.</p>
               ) : (
                 (runsheets ?? []).map((r) => (
                   <div
                     key={r.id}
-                    className="flex items-stretch overflow-hidden rounded-[14px] border border-[#eeeeee] bg-white shadow-[0_4px_15px_rgba(0,0,0,0.05)]"
+                    className="flex items-stretch overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)]"
                   >
-                    <div className="w-1.5 shrink-0 bg-[#4a90e2]" aria-hidden />
+                    <div className="w-1.5 shrink-0 bg-rs-primary" aria-hidden />
                     <div className="flex min-w-0 flex-1 flex-col gap-1 p-3">
                       <Link
                         href={`/runsheet/${r.id}`}
-                        className="truncate text-[0.95rem] font-bold text-[#333] no-underline hover:text-[#4a90e2]"
+                        className="truncate text-[0.95rem] font-bold text-rs-text no-underline hover:text-rs-primary"
                       >
                         {r.title}
                       </Link>
-                      <p className="text-[0.72rem] text-[#888] tabular-nums">
+                      <p className="text-[0.72rem] text-rs-faint tabular-nums">
                         {r.start_date === r.end_date
                           ? DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")
                           : `${DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")} – ${DateTime.fromISO(r.end_date).toFormat("d MMM yyyy")}`}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-[#eef6ff] px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-[#4a90e2]">
+                        <span className="rounded-full bg-rs-today px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-rs-primary">
                           {r.timezone}
                         </span>
                       </div>
@@ -154,7 +154,7 @@ export default async function DashboardPage({
                       <input type="hidden" name="id" value={r.id} />
                       <button
                         type="submit"
-                        className="rounded-lg px-2 py-1 text-[0.65rem] font-bold text-[#999] hover:bg-[#fafafa]"
+                        className="rounded-lg px-2 py-1 text-[0.65rem] font-bold text-rs-label hover:bg-rs-muted-surface"
                         title="Archive"
                       >
                         Archive

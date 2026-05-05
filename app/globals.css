@@ -1,13 +1,44 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+/* Semantic tokens → utilities: bg-rs-page, text-rs-text, border-rs-border, … */
 @theme inline {
   --color-rs-page: #fcfcfc;
+  --color-rs-surface: #ffffff;
+  --color-rs-elevated: #ffffff;
+  --color-rs-muted-surface: #fafafa;
   --color-rs-border: #eeeeee;
-  --color-rs-primary: #4a90e2;
-  --color-rs-today: #eef6ff;
-  --color-rs-muted: #999999;
   --color-rs-text: #333333;
+  --color-rs-secondary: #555555;
+  --color-rs-muted: #666666;
+  --color-rs-subtle: #777777;
+  --color-rs-faint: #888888;
+  --color-rs-label: #999999;
+  --color-rs-fill: #f0f0f0;
+  --color-rs-hover: #f5f5f5;
+  --color-rs-code-bg: #f5f5f5;
+  --color-rs-today: #eef6ff;
+  --color-rs-primary: #4a90e2;
   --font-sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+}
+
+.dark {
+  --color-rs-page: #0f0f0f;
+  --color-rs-surface: #171717;
+  --color-rs-elevated: #1a1a1a;
+  --color-rs-muted-surface: #262626;
+  --color-rs-border: #333333;
+  --color-rs-text: #ebebeb;
+  --color-rs-secondary: #cfcfcf;
+  --color-rs-muted: #a3a3a3;
+  --color-rs-subtle: #9a9a9a;
+  --color-rs-faint: #949494;
+  --color-rs-label: #949494;
+  --color-rs-fill: #262626;
+  --color-rs-hover: #292929;
+  --color-rs-code-bg: #2a2a2a;
+  --color-rs-today: rgba(74, 144, 226, 0.2);
 }
 
 body {
@@ -17,34 +48,68 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.dark body {
+  color-scheme: dark;
+}
+
+.dark input:is([type="text"], [type="email"], [type="password"], [type="date"], [type="datetime-local"], [type="time"], [type="number"]),
+.dark select,
+.dark textarea {
+  background-color: var(--color-rs-fill);
+  color: var(--color-rs-text);
+}
+
 @layer components {
   .rs-tab {
-    @apply flex-1 rounded-[10px] border border-[#eeeeee] bg-white px-3 py-2 text-[0.8rem] font-bold text-[#555] shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition;
+    @apply flex-1 rounded-[10px] border border-rs-border bg-rs-muted-surface px-3 py-2 text-[0.8rem] font-bold text-rs-secondary shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition;
   }
   .rs-tab[aria-selected="true"] {
-    @apply border-[#4a90e2] bg-[#4a90e2] text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)];
+    @apply border-rs-primary bg-rs-primary text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)];
   }
   .rs-tab:focus-visible {
-    @apply outline outline-2 outline-offset-2 outline-[#4a90e2];
+    @apply outline outline-2 outline-offset-2 outline-rs-primary;
   }
   .rs-card {
-    @apply mb-3 rounded-[14px] border border-[#eeeeee] bg-white p-3 shadow-[0_4px_15px_rgba(0,0,0,0.05)];
+    @apply mb-3 rounded-[14px] border border-rs-border bg-rs-surface p-3 shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)];
   }
   .rs-date-badge {
-    @apply rounded-[10px] border border-[#eeeeee] bg-[#fafafa] px-2 py-1.5 text-center text-[0.8rem] font-bold tabular-nums text-[#333];
+    @apply rounded-[10px] border border-rs-border bg-rs-muted-surface px-2 py-1.5 text-center text-[0.8rem] font-bold tabular-nums text-rs-text;
   }
   .rs-add-btn {
-    @apply flex h-14 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-[#4a90e2] bg-[#f7fbff] text-[0.95rem] font-bold text-[#4a90e2] shadow-[0_2px_8px_rgba(74,144,226,0.12)];
+    @apply flex h-14 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-rs-primary bg-rs-today text-[0.95rem] font-bold text-rs-primary shadow-[0_2px_8px_rgba(74,144,226,0.12)] dark:bg-[rgba(74,144,226,0.08)];
   }
   .rs-hour {
-    @apply flex h-12 items-start justify-end border-b border-[#eeeeee] pr-1 pt-0.5 text-[0.65rem] font-bold tabular-nums text-[#999];
+    @apply flex h-12 items-start justify-end border-b border-rs-border pr-1 pt-0.5 text-[0.65rem] font-bold tabular-nums text-rs-label;
   }
   .rs-slot {
-    @apply absolute left-0 right-0 overflow-hidden rounded-lg border-l-[4px] bg-white px-2 py-1 text-[0.72rem] font-bold leading-tight shadow-[0_2px_6px_rgba(0,0,0,0.06)];
+    @apply absolute left-0 right-0 overflow-hidden rounded-lg border-l-[4px] bg-rs-surface px-2 py-1 text-[0.72rem] font-bold leading-tight shadow-[0_2px_6px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)];
   }
 }
 
 @media print {
+  /* Force light-theme tokens while printing regardless of preview mode */
+  .print-root,
+  .print-root * {
+    --color-rs-page: #ffffff;
+    --color-rs-surface: #ffffff;
+    --color-rs-elevated: #ffffff;
+    --color-rs-muted-surface: #fafafa;
+    --color-rs-border: #eeeeee;
+    --color-rs-text: #333333;
+    --color-rs-secondary: #555555;
+    --color-rs-muted: #666666;
+    --color-rs-subtle: #777777;
+    --color-rs-faint: #888888;
+    --color-rs-label: #999999;
+    --color-rs-fill: #f0f0f0;
+    --color-rs-hover: #f5f5f5;
+    --color-rs-code-bg: #f5f5f5;
+    --color-rs-today: #eef6ff;
+  }
+  html,
+  html.dark body {
+    color-scheme: light;
+  }
   body {
     background: #fff !important;
   }

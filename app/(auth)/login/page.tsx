@@ -10,8 +10,8 @@ export default async function LoginPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#333]">Sign in</h1>
-        <p className="mt-1 text-sm text-[#666]">Runsheet — shared timelines.</p>
+        <h1 className="text-2xl font-bold text-rs-text">Sign in</h1>
+        <p className="mt-1 text-sm text-rs-muted">Runsheet — shared timelines.</p>
       </div>
       <form action={signInWithPassword} className="rs-card space-y-4">
         {next?.startsWith("/") ? (
@@ -23,7 +23,7 @@ export default async function LoginPage({
           </p>
         ) : null}
         <div>
-          <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+          <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
             Email
           </label>
           <input
@@ -31,11 +31,11 @@ export default async function LoginPage({
             type="email"
             required
             autoComplete="email"
-            className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+            className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
           />
         </div>
         <div>
-          <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-[#999]">
+          <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
             Password
           </label>
           <input
@@ -43,22 +43,22 @@ export default async function LoginPage({
             type="password"
             required
             autoComplete="current-password"
-            className="w-full rounded-xl border border-[#eeeeee] px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#4a90e2]"
+            className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
           />
         </div>
         <button
           type="submit"
-          className="w-full rounded-xl bg-[#4a90e2] py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
+          className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
         >
           Sign in
         </button>
       </form>
-      <p className="text-center text-sm text-[#666]">
-        <Link className="font-bold text-[#4a90e2]" href="/signup">
+      <p className="text-center text-sm text-rs-muted">
+        <Link className="font-bold text-rs-primary" href="/signup">
           Create account
         </Link>
         {" · "}
-        <Link className="font-bold text-[#777]" href="/forgot-password">
+        <Link className="font-bold text-rs-subtle" href="/forgot-password">
           Forgot password
         </Link>
       </p>
