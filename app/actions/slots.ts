@@ -9,14 +9,15 @@ import { localWallRangeEndUtcIso, localWallToUtcIso } from "@/lib/dates";
 import { normalizeActivityType } from "@/lib/activity-types";
 
 function endIsoForSlot(
-  dayYmd: string,
+  startDayYmd: string,
+  endDayYmd: string | null,
   timeZone: string,
   startHm: string,
   endHm: string | null,
   openEnd: boolean | undefined,
 ): string {
   const [sh, sm] = startHm.split(":").map(Number);
-  const startIso = localWallToUtcIso(dayYmd, sh, sm, timeZone);
+  const startIso = localWallToUtcIso(startDayYmd, sh, sm, timeZone);
   if (openEnd) {
     return (
       DateTime.fromISO(startIso, { zone: "utc" }).plus({ hours: 4 }).toISO() ??
@@ -24,12 +25,17 @@ function endIsoForSlot(
     );
   }
   const ehmm = endHm ?? startHm;
-  return localWallRangeEndUtcIso(dayYmd, timeZone, startHm, ehmm);
+  if (endDayYmd) {
+    const [eh, em] = ehmm.split(":").map(Number);
+    return localWallToUtcIso(endDayYmd, eh, em, timeZone);
+  }
+  return localWallRangeEndUtcIso(startDayYmd, timeZone, startHm, ehmm);
 }
 
 export async function createSlot(input: {
   runsheetId: string;
   dayYmd: string;
+  endDayYmd?: string | null;
   timeZone: string;
   startHm: string;
   endHm: string | null;
@@ -38,6 +44,11 @@ export async function createSlot(input: {
   description?: string;
   descriptionBullets?: string[];
   linkUrl?: string | null;
+  mapUrl?: string | null;
+  fromLocation?: string | null;
+  toLocation?: string | null;
+  flightNumber?: string | null;
+  locationName?: string | null;
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
@@ -48,6 +59,7 @@ export async function createSlot(input: {
   const startIso = localWallToUtcIso(input.dayYmd, sh, sm, input.timeZone);
   const endIso = endIsoForSlot(
     input.dayYmd,
+    input.endDayYmd ?? null,
     input.timeZone,
     input.startHm,
     input.endHm,
@@ -77,6 +89,11 @@ export async function createSlot(input: {
       description: input.description ?? null,
       description_bullets: bullets,
       todos,
+      from_location: input.fromLocation ?? null,
+      to_location: input.toLocation ?? null,
+      flight_number: input.flightNumber ?? null,
+      location_name: input.locationName ?? null,
+      map_url: input.mapUrl ?? null,
       link_url: input.linkUrl || null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
@@ -94,6 +111,7 @@ export async function updateSlot(input: {
   runsheetId: string;
   slotId: string;
   dayYmd: string;
+  endDayYmd?: string | null;
   timeZone: string;
   startHm: string;
   endHm: string | null;
@@ -102,6 +120,11 @@ export async function updateSlot(input: {
   description?: string;
   descriptionBullets?: string[];
   linkUrl?: string | null;
+  mapUrl?: string | null;
+  fromLocation?: string | null;
+  toLocation?: string | null;
+  flightNumber?: string | null;
+  locationName?: string | null;
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
@@ -112,6 +135,7 @@ export async function updateSlot(input: {
   const startIso = localWallToUtcIso(input.dayYmd, sh, sm, input.timeZone);
   const endIso = endIsoForSlot(
     input.dayYmd,
+    input.endDayYmd ?? null,
     input.timeZone,
     input.startHm,
     input.endHm,
@@ -144,6 +168,11 @@ export async function updateSlot(input: {
       description: input.description ?? null,
       description_bullets: bullets,
       ...(todosClean !== undefined ? { todos: todosClean } : {}),
+      from_location: input.fromLocation ?? null,
+      to_location: input.toLocation ?? null,
+      flight_number: input.flightNumber ?? null,
+      location_name: input.locationName ?? null,
+      map_url: input.mapUrl ?? null,
       link_url: input.linkUrl ?? null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
@@ -182,7 +211,9 @@ export async function deleteSlotFromForm(formData: FormData) {
 export async function updateSlotFromForm(formData: FormData) {
   const runsheetId = String(formData.get("runsheet_id") ?? "");
   const slotId = String(formData.get("slot_id") ?? "");
-  const dayYmd = String(formData.get("day_ymd") ?? "");
+  const startDayYmd = String(formData.get("start_day_ymd") ?? formData.get("day_ymd") ?? "");
+  const endDayYmdRaw = String(formData.get("end_day_ymd") ?? "");
+  const endDayYmd = endDayYmdRaw || startDayYmd;
   const timeZone = String(formData.get("timezone") ?? "UTC");
   const startHm = String(formData.get("start_hm") ?? "09:00");
   const endHm = String(formData.get("end_hm") ?? "");
@@ -190,6 +221,11 @@ export async function updateSlotFromForm(formData: FormData) {
   const activityType = String(formData.get("activity_type") ?? "other");
   const description = String(formData.get("description") ?? "");
   const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
+  const mapUrl = String(formData.get("map_url") ?? "").trim() || null;
+  const fromLocation = String(formData.get("from_location") ?? "").trim() || null;
+  const toLocation = String(formData.get("to_location") ?? "").trim() || null;
+  const flightNumber = String(formData.get("flight_number") ?? "").trim() || null;
+  const locationName = String(formData.get("location_name") ?? "").trim() || null;
   const bookingRef = String(formData.get("booking_ref") ?? "").trim() || null;
   const contactInfo = String(formData.get("contact_info") ?? "").trim() || null;
   const openEnd = formData.get("open_end") === "on";
@@ -207,7 +243,8 @@ export async function updateSlotFromForm(formData: FormData) {
   await updateSlot({
     runsheetId,
     slotId,
-    dayYmd,
+    dayYmd: startDayYmd,
+    endDayYmd,
     timeZone,
     startHm,
     endHm: endHm || null,
@@ -216,17 +253,24 @@ export async function updateSlotFromForm(formData: FormData) {
     description,
     descriptionBullets,
     linkUrl,
+    mapUrl,
+    fromLocation,
+    toLocation,
+    flightNumber,
+    locationName,
     bookingRef,
     contactInfo,
     openEnd,
     todos,
   });
-  redirect(`/runsheet/${runsheetId}?day=${dayYmd}`);
+  redirect(`/runsheet/${runsheetId}?day=${startDayYmd}`);
 }
 
 export async function createSlotFromForm(formData: FormData) {
   const runsheetId = String(formData.get("runsheet_id") ?? "");
-  const dayYmd = String(formData.get("day_ymd") ?? "");
+  const startDayYmd = String(formData.get("start_day_ymd") ?? formData.get("day_ymd") ?? "");
+  const endDayYmdRaw = String(formData.get("end_day_ymd") ?? "");
+  const endDayYmd = endDayYmdRaw || startDayYmd;
   const timeZone = String(formData.get("timezone") ?? "UTC");
   const startHm = String(formData.get("start_hm") ?? "09:00");
   const endHm = String(formData.get("end_hm") ?? "");
@@ -234,6 +278,11 @@ export async function createSlotFromForm(formData: FormData) {
   const activityType = String(formData.get("activity_type") ?? "other");
   const description = String(formData.get("description") ?? "");
   const linkUrl = String(formData.get("link_url") ?? "").trim() || null;
+  const mapUrl = String(formData.get("map_url") ?? "").trim() || null;
+  const fromLocation = String(formData.get("from_location") ?? "").trim() || null;
+  const toLocation = String(formData.get("to_location") ?? "").trim() || null;
+  const flightNumber = String(formData.get("flight_number") ?? "").trim() || null;
+  const locationName = String(formData.get("location_name") ?? "").trim() || null;
   const bookingRef = String(formData.get("booking_ref") ?? "").trim() || null;
   const contactInfo = String(formData.get("contact_info") ?? "").trim() || null;
   const openEnd = formData.get("open_end") === "on";
@@ -250,7 +299,8 @@ export async function createSlotFromForm(formData: FormData) {
 
   const id = await createSlot({
     runsheetId,
-    dayYmd,
+    dayYmd: startDayYmd,
+    endDayYmd,
     timeZone,
     startHm,
     endHm: endHm || null,
@@ -259,6 +309,11 @@ export async function createSlotFromForm(formData: FormData) {
     description,
     descriptionBullets,
     linkUrl,
+    mapUrl,
+    fromLocation,
+    toLocation,
+    flightNumber,
+    locationName,
     bookingRef,
     contactInfo,
     openEnd,
@@ -267,5 +322,5 @@ export async function createSlotFromForm(formData: FormData) {
   if (id) {
     redirect(`/runsheet/${runsheetId}/activity/${id}`);
   }
-  redirect(`/runsheet/${runsheetId}?day=${dayYmd}&error=slot`);
+  redirect(`/runsheet/${runsheetId}?day=${startDayYmd}&error=slot`);
 }

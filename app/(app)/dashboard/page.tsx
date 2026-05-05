@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
-import { createRunsheet, archiveRunsheet } from "@/app/actions/runsheets";
 import { signOut } from "@/app/actions/auth";
+import { RunsheetListClient } from "@/components/dashboard/runsheet-list-client";
 
 const CREATE_ERROR_COPY: Record<string, string> = {
   "missing-title": "Add a title before creating a runsheet.",
@@ -68,104 +68,18 @@ export default async function DashboardPage({
           </div>
         </header>
 
-        <div className="space-y-3 p-4">
-          <form action={createRunsheet} className="rs-card space-y-3">
-            {createErrorMessage ? (
-              <p
-                role="alert"
-                className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
-              >
-                {createErrorMessage}
-              </p>
-            ) : null}
-            <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-              New runsheet
-            </p>
-            <input
-              name="title"
-              placeholder="Title (e.g. Greece 2026)"
-              required
-              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
-            />
-            <div className="flex flex-wrap gap-2">
-              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip starts</span>
-                <input
-                  type="date"
-                  name="start_date"
-                  required
-                  defaultValue={defaultStartUtc}
-                  className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
-                />
-              </label>
-              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip ends</span>
-                <input
-                  type="date"
-                  name="end_date"
-                  required
-                  defaultValue={defaultEndUtc}
-                  className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-rs-primary"
-                />
-              </label>
-            </div>
-            <input type="hidden" name="timezone" value="UTC" />
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
-            >
-              Create
-            </button>
-          </form>
-
-          <div className="pt-2">
-            <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-              Yours
-            </p>
-            <div className="space-y-2">
-              {(runsheets ?? []).length === 0 ? (
-                <p className="text-sm text-rs-muted">No runsheets yet — create one above.</p>
-              ) : (
-                (runsheets ?? []).map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex items-stretch overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)]"
-                  >
-                    <div className="w-1.5 shrink-0 bg-rs-primary" aria-hidden />
-                    <div className="flex min-w-0 flex-1 flex-col gap-1 p-3">
-                      <Link
-                        href={`/runsheet/${r.id}`}
-                        className="truncate text-[0.95rem] font-bold text-rs-text no-underline hover:text-rs-primary"
-                      >
-                        {r.title}
-                      </Link>
-                      <p className="text-[0.72rem] text-rs-faint tabular-nums">
-                        {r.start_date === r.end_date
-                          ? DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")
-                          : `${DateTime.fromISO(r.start_date).toFormat("d MMM yyyy")} – ${DateTime.fromISO(r.end_date).toFormat("d MMM yyyy")}`}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-rs-today px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-rs-primary">
-                          {r.timezone}
-                        </span>
-                      </div>
-                    </div>
-                    <form action={archiveRunsheet} className="shrink-0 p-2">
-                      <input type="hidden" name="id" value={r.id} />
-                      <button
-                        type="submit"
-                        className="rounded-lg px-2 py-1 text-[0.65rem] font-bold text-rs-label hover:bg-rs-muted-surface"
-                        title="Archive"
-                      >
-                        Archive
-                      </button>
-                    </form>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+        <RunsheetListClient
+          runsheets={(runsheets ?? []).map((r) => ({
+            id: r.id,
+            title: r.title,
+            timezone: r.timezone,
+            start_date: r.start_date,
+            end_date: r.end_date,
+          }))}
+          createErrorMessage={createErrorMessage}
+          defaultStartUtc={defaultStartUtc}
+          defaultEndUtc={defaultEndUtc}
+        />
       </div>
     </div>
   );

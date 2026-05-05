@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DateTime } from "luxon";
-import { ACTIVITY_TYPES, activityMeta } from "@/lib/activity-types";
+import { activityMeta } from "@/lib/activity-types";
 import { clampYmdToRange } from "@/lib/dates";
 import { slotHm, bulletsFromRow, todosFromRow, slotSpansNextCalendarDay } from "@/lib/slot-display";
 import {
@@ -10,6 +10,7 @@ import {
   deleteSlotFromForm,
 } from "@/app/actions/slots";
 import { LinkPreviewButton } from "@/components/link-preview-button";
+import { SlotCoreFields } from "@/components/slot-core-fields";
 import type { Database } from "@/lib/database.types";
 
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
@@ -51,6 +52,10 @@ export default async function ActivityPage({
   const endHm = s.open_ended ? "" : slotHm(s.end_at, tz);
   const overnight = slotSpansNextCalendarDay(s.start_at, s.end_at, tz, s.open_ended);
   const dayEditDefault = clampYmdToRange(dayYmd, rs.start_date, rs.end_date, tz);
+  const localStart = DateTime.fromISO(s.start_at, { zone: "utc" }).setZone(tz);
+  const localEnd = DateTime.fromISO(s.end_at, { zone: "utc" }).setZone(tz);
+  const startDayYmd = localStart.toISODate() ?? dayEditDefault;
+  const endDayYmd = localEnd.toISODate() ?? dayEditDefault;
 
   return (
     <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-10 print:pb-4 sm:p-2.5">
@@ -62,9 +67,19 @@ export default async function ActivityPage({
           >
             ← Close
           </Link>
-          <span className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-            Activity
-          </span>
+          <div className="flex items-center gap-2">
+            <a
+              href="#edit-slot"
+              className="no-print rounded-lg p-1.5 text-rs-label no-underline hover:bg-rs-muted-surface hover:text-rs-text"
+              aria-label="Edit slot"
+              title="Edit slot"
+            >
+              ⚙
+            </a>
+            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+              Activity
+            </span>
+          </div>
         </header>
 
         <div className="overflow-hidden rounded-none border-0 bg-rs-surface shadow-none sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
@@ -79,13 +94,14 @@ export default async function ActivityPage({
             }
           />
           <div className="space-y-3 px-4 pb-4 pt-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <span
                 className="rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white"
                 style={{ backgroundColor: meta.border }}
               >
                 {meta.label}
               </span>
+              <span className="no-print text-sm text-rs-label">✎ Edit below</span>
             </div>
             <h1 className="text-[1.15rem] font-bold leading-snug text-rs-text">
               {s.title ?? "Untitled"}
@@ -149,90 +165,50 @@ export default async function ActivityPage({
             ) : null}
 
             <dl className="grid grid-cols-[1fr_2fr] gap-x-2 gap-y-2 text-sm">
+              <dt className="font-bold text-rs-label">From</dt>
+              <dd className="text-rs-text">{s.from_location ?? "—"}</dd>
+              <dt className="font-bold text-rs-label">To</dt>
+              <dd className="text-rs-text">{s.to_location ?? "—"}</dd>
+              <dt className="font-bold text-rs-label">Flight no.</dt>
+              <dd className="text-rs-text">{s.flight_number ?? "—"}</dd>
               <dt className="font-bold text-rs-label">Booking</dt>
               <dd className="text-rs-text">{s.booking_ref ?? "—"}</dd>
               <dt className="font-bold text-rs-label">Contact</dt>
               <dd className="text-rs-text">{s.contact_info ?? "—"}</dd>
             </dl>
 
-            <details className="no-print rounded-xl border border-rs-border bg-rs-muted-surface p-3">
+            {s.map_url ? (
+              <a
+                href={s.map_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex rounded-xl border border-rs-border bg-rs-muted-surface px-3 py-2 text-sm font-bold text-rs-primary no-underline"
+              >
+                Open map
+              </a>
+            ) : null}
+
+            <details id="edit-slot" className="no-print rounded-xl border border-rs-border bg-rs-muted-surface p-3">
               <summary className="cursor-pointer text-sm font-bold text-rs-text">Adjust…</summary>
               <form action={updateSlotFromForm} className="mt-3 space-y-3">
                 <input type="hidden" name="runsheet_id" value={runsheetId} />
                 <input type="hidden" name="slot_id" value={slotId} />
                 <input type="hidden" name="timezone" value={tz} />
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Title
-                  </label>
-                  <input
-                    name="title"
-                    defaultValue={s.title ?? ""}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Type
-                  </label>
-                  <select
-                    name="activity_type"
-                    defaultValue={s.activity_type}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  >
-                    {ACTIVITY_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {activityMeta(t).label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <span className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    When
-                  </span>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:items-end">
-                    <div>
-                      <label className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label/80">
-                        Day
-                      </label>
-                      <input
-                        type="date"
-                        name="day_ymd"
-                        required
-                        min={rs.start_date}
-                        max={rs.end_date}
-                        defaultValue={dayEditDefault}
-                        className="w-full rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label/80">
-                        Start
-                      </label>
-                      <input
-                        name="start_hm"
-                        type="time"
-                        defaultValue={startHm}
-                        className="w-full rounded-xl border border-rs-border px-2 py-2 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label/80">
-                        End
-                      </label>
-                      <input
-                        name="end_hm"
-                        type="time"
-                        defaultValue={endHm}
-                        className="w-full rounded-xl border border-rs-border px-2 py-2 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <p className="mt-1 text-[0.72rem] leading-snug text-rs-muted">
-                    Overnight: end earlier on the clock than start (e.g. 22:00–02:00).
-                  </p>
-                </div>
+                <SlotCoreFields
+                  startDateMin={rs.start_date}
+                  endDateMax={rs.end_date}
+                  defaultStartDayYmd={startDayYmd}
+                  defaultEndDayYmd={endDayYmd}
+                  defaultStartHm={startHm}
+                  defaultEndHm={endHm}
+                  defaultType={s.activity_type}
+                  defaultTitle={s.title}
+                  defaultFromLocation={s.from_location}
+                  defaultToLocation={s.to_location}
+                  defaultFlightNumber={s.flight_number}
+                  defaultLocationName={s.location_name}
+                  defaultMapUrl={s.map_url}
+                />
                 <label className="flex items-center gap-2 text-sm font-bold text-rs-secondary">
                   <input type="checkbox" name="open_end" defaultChecked={s.open_ended} />
                   Open end
@@ -315,7 +291,7 @@ export default async function ActivityPage({
               <input type="hidden" name="slot_id" value={slotId} />
               <button
                 type="submit"
-                className="w-full rounded-xl border border-red-200 bg-red-50 py-2 text-sm font-bold text-red-800"
+                className="rs-btn rs-btn-danger w-full"
               >
                 Delete slot
               </button>

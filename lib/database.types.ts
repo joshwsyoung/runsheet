@@ -151,6 +151,11 @@ export interface Database {
           description: string | null;
           description_bullets: Json;
           todos: Json;
+          from_location: string | null;
+          to_location: string | null;
+          flight_number: string | null;
+          location_name: string | null;
+          map_url: string | null;
           link_url: string | null;
           preview_title: string | null;
           preview_description: string | null;
@@ -173,6 +178,11 @@ export interface Database {
           description?: string | null;
           description_bullets?: Json;
           todos?: Json;
+          from_location?: string | null;
+          to_location?: string | null;
+          flight_number?: string | null;
+          location_name?: string | null;
+          map_url?: string | null;
           link_url?: string | null;
           preview_title?: string | null;
           preview_description?: string | null;
@@ -195,6 +205,11 @@ export interface Database {
           description?: string | null;
           description_bullets?: Json;
           todos?: Json;
+          from_location?: string | null;
+          to_location?: string | null;
+          flight_number?: string | null;
+          location_name?: string | null;
+          map_url?: string | null;
           link_url?: string | null;
           preview_title?: string | null;
           preview_description?: string | null;

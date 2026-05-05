@@ -18,8 +18,8 @@ import {
   todosFromRow,
 } from "@/lib/slot-display";
 import type { Database } from "@/lib/database.types";
-import { PrintButton } from "@/components/print-button";
 import { RunsheetDayScroller } from "@/components/runsheet-day-scroller";
+import { RunsheetMoreMenu } from "@/components/runsheet-more-menu";
 
 type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
@@ -146,7 +146,11 @@ export async function RunsheetView({
     return q(id, { day, tab: "schedule", sv });
   }
 
-  const dayChips = labels.map((ymd) => ({ ymd, href: navDay(ymd) }));
+  const dayChips = labels.map((ymd) => ({
+    ymd,
+    href: navDay(ymd),
+    slotCount: slotsByDay[ymd]?.length ?? 0,
+  }));
 
   return (
     <div
@@ -163,40 +167,10 @@ export async function RunsheetView({
             <TripDateSummary startDate={runsheet.start_date} endDate={runsheet.end_date} tz={tz} />
           </div>
           <div className="no-print flex shrink-0 flex-col items-end gap-2 pt-0.5">
-            <Link
-              href={`/runsheet/${id}/settings`}
-              className="rounded-lg p-2 text-rs-faint hover:bg-rs-code-bg hover:text-rs-text"
-              aria-label="Trip settings"
-              title="Settings"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-[22px] w-[22px]"
-              >
-                <path d="M10.343 3.94c.09-.542.560-.940 1.110-.940h2.593c0.550 0 1.020 0.398 1.110 0.94l0.213 1.281c0.063 0.374 0.313 0.686 0.644 0.87 0.074 0.04 0.147 0.083 0.22 0.127 0.324 0.196 0.72 0.257 1.075 0.124l1.217-.456c0.53-.204 1.125 0 1.37 0.49l1.296 2.247c0.261 0.451 0.151 1.055-.26 1.431l-1.003 0.827c-0.293 0.24-0.438 0.613-0.391 0.992 0.016 0.085 0.016 0.17 0 0.255-0.047 0.378 0.097 0.752 0.392 0.99l1.005 0.827c0.424 0.35 0.534 0.954 0.26 1.43l-1.298 2.247c-0.26 0.459-0.849 0.674-1.369 0.491l-1.217-.456c-0.355-.132-0.75-.072-1.076 0.124-0.071 0.044-0.146 0.084-0.223 0.087-0.33 0.182-0.579 0.491-0.642 0.867l-0.213 1.28c-0.09 0.543-0.56 0.942-1.11 0.942h-2.594c-0.55 0-1.020-.399-1.11-.942l-0.213-1.281c-0.062-0.376-0.313-0.684-0.642-0.867-0.071-0.043-0.146-0.083-0.219-0.086-0.335-0.134-0.734-0.069-1.088 0.091l-1.216 0.457c-0.53 0.204-1.125 0-1.369-.49l-1.297-2.247c-0.261-0.451-0.151-1.055 0.261-1.431l1.004-.827c0.292-.248 0.442-.627 0.389-.995-0.008-0.085-0.008-0.17 0-0.253 0.053-0.378-0.097-0.764-0.389-0.992l-1.004-.827c-0.424-0.35-0.534-0.954-0.261-1.43l1.297-2.246c0.26-0.459 0.849-0.674 1.37-0.491l1.217 0.457c0.355 0.134 0.749 0.069 1.088-.089 0.071-.046 0.146-.086 0.219-0.086 0.331-0.174 0.579-0.478 0.642-0.834l0.213-1.281z" />
-                <path d="M15 12a3 3 0 01-6 0 3 3 0 016 0z" />
-              </svg>
+            <Link href="/dashboard" className="text-[0.72rem] font-bold text-rs-primary no-underline hover:underline">
+              ← Back
             </Link>
-            <div className="flex flex-col items-end gap-1 text-right">
-              <Link
-                href="/account"
-                className="text-[0.68rem] font-bold text-rs-primary no-underline hover:underline"
-              >
-                Account
-              </Link>
-              <Link
-                href="/dashboard"
-                className="text-[0.72rem] font-bold text-rs-primary no-underline hover:underline"
-              >
-                Runsheets
-              </Link>
-            </div>
+            <RunsheetMoreMenu id={id} />
           </div>
         </div>
 
@@ -207,29 +181,25 @@ export async function RunsheetView({
             focusYmd={focusYmd}
             todayYmd={todayYmdInTz(tz)}
           />
-          <div className="no-print flex justify-end border-t border-rs-border pt-2">
-            <PrintButton />
+          <div className="no-print mt-2 flex gap-2">
+            <Link
+              href={q(id, { day: focusYmd, tab: "list" })}
+              role="tab"
+              aria-selected={tab === "list"}
+              className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
+            >
+              List
+            </Link>
+            <Link
+              href={q(id, { day: focusYmd, tab: "schedule", sv })}
+              role="tab"
+              aria-selected={tab === "schedule"}
+              className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
+            >
+              Schedule
+            </Link>
           </div>
         </div>
-
-        <nav className="no-print flex gap-2 p-3" role="tablist" aria-label="Day layout">
-          <Link
-            href={q(id, { day: focusYmd, tab: "list" })}
-            role="tab"
-            aria-selected={tab === "list"}
-            className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
-          >
-            List
-          </Link>
-          <Link
-            href={q(id, { day: focusYmd, tab: "schedule", sv })}
-            role="tab"
-            aria-selected={tab === "schedule"}
-            className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
-          >
-            Schedule
-          </Link>
-        </nav>
 
         {tab === "list" ? (
           <div
@@ -301,7 +271,7 @@ export async function RunsheetView({
               <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
                 Checklist
               </p>
-              <h3 className="mt-1 text-[0.95rem] font-bold text-rs-text">Day tasks</h3>
+              <h3 className="mt-1 text-[0.95rem] font-bold text-rs-text">To-dos</h3>
               <ul className="mt-3 space-y-2 text-[0.8rem] text-rs-secondary">
                 {checklist.map((item) => (
                   <li key={item.id} className="flex items-start gap-2">
@@ -327,7 +297,7 @@ export async function RunsheetView({
                   <input type="hidden" name="day_id" value={focusDay.id} />
                   <input
                     name="label"
-                    placeholder="Add item"
+                    placeholder="Add to-do"
                     className="min-w-0 flex-1 rounded-xl border border-rs-border px-2 py-1.5 text-sm"
                   />
                   <button

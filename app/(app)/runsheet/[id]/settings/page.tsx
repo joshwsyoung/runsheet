@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
 import { inviteToRunsheet } from "@/app/actions/invites";
-import { updateRunsheetBasics, updateRunsheetTripDates } from "@/app/actions/runsheets";
+import { updateRunsheetSettings } from "@/app/actions/runsheets";
 import type { Database } from "@/lib/database.types";
 
 type InviteRow = Database["public"]["Tables"]["runsheet_invites"]["Row"];
@@ -119,13 +119,13 @@ export default async function RunsheetSettingsPage({
         {banner ? (
           <div
             role="alert"
-            className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-center text-[0.8rem] font-bold text-red-800"
+            className="rs-alert-danger text-center text-[0.8rem] font-bold"
           >
             {banner}
           </div>
         ) : null}
 
-        <div className="rs-card mx-1 space-y-4 p-4">
+        <div className="rs-card mx-1 space-y-4 p-5">
           <section>
             <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">Summary</h2>
             <p className="mt-1 text-sm text-rs-secondary">{tripRangeLabel}</p>
@@ -139,83 +139,59 @@ export default async function RunsheetSettingsPage({
               Only owners and editors can change trip details. You can view who has access below.
             </p>
           ) : (
-            <>
-              <section className="border-t border-rs-border pt-4">
-                <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                  Name & timezone
-                </h2>
-                <form action={updateRunsheetBasics} className="mt-2 space-y-2">
-                  <input type="hidden" name="runsheet_id" value={id} />
-                  <label className="block">
-                    <span className="mb-1 block text-[0.62rem] font-bold text-rs-label">Trip name</span>
+            <section className="border-t border-rs-border pt-4">
+              <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                Planner settings
+              </h2>
+              <form action={updateRunsheetSettings} className="mt-2 space-y-3">
+                <input type="hidden" name="runsheet_id" value={id} />
+                <label className="block">
+                  <span className="mb-1 block text-[0.62rem] font-bold text-rs-label">Trip name</span>
+                  <input
+                    name="title"
+                    required
+                    defaultValue={runsheet.title}
+                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[0.62rem] font-bold text-rs-label">
+                    Timezone (IANA)
+                  </span>
+                  <input
+                    name="timezone"
+                    defaultValue={tz}
+                    placeholder="Europe/London"
+                    className="w-full rounded-xl border border-rs-border px-3 py-2 font-mono text-sm"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[0.62rem] font-bold text-rs-label">Start date</span>
                     <input
-                      name="title"
+                      type="date"
+                      name="start_date"
                       required
-                      defaultValue={runsheet.title}
-                      className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                      defaultValue={runsheet.start_date}
+                      className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums"
                     />
                   </label>
-                  <label className="block">
-                    <span className="mb-1 block text-[0.62rem] font-bold text-rs-label">
-                      Timezone (IANA)
-                    </span>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[0.62rem] font-bold text-rs-label">End date</span>
                     <input
-                      name="timezone"
-                      defaultValue={tz}
-                      placeholder="Europe/London"
-                      className="w-full rounded-xl border border-rs-border px-3 py-2 font-mono text-sm"
+                      type="date"
+                      name="end_date"
+                      required
+                      defaultValue={runsheet.end_date}
+                      className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums"
                     />
                   </label>
-                  <button
-                    type="submit"
-                    className="w-full rounded-xl bg-rs-primary py-2 text-sm font-bold text-white shadow-[0_2px_8px_rgba(74,144,226,0.2)]"
-                  >
-                    Save details
-                  </button>
-                </form>
-              </section>
-
-              <section className="border-t border-rs-border pt-4">
-                <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                  Trip dates
-                </h2>
-                <p className="mt-1 text-[0.75rem] text-rs-faint">
-                  Changes the calendar range for this sheet (shown in the strip at the top).
-                </p>
-                <form action={updateRunsheetTripDates} className="mt-2 flex flex-col gap-2">
-                  <input type="hidden" name="runsheet_id" value={id} />
-                  <input type="hidden" name="return_to" value="settings" />
-                  <div className="flex flex-wrap gap-2">
-                    <label className="flex min-w-[7rem] flex-1 flex-col gap-1">
-                      <span className="text-[0.62rem] font-bold text-rs-label">Start</span>
-                      <input
-                        type="date"
-                        name="start_date"
-                        required
-                        defaultValue={runsheet.start_date}
-                        className="rounded-xl border border-rs-border px-2 py-1.5 text-sm tabular-nums"
-                      />
-                    </label>
-                    <label className="flex min-w-[7rem] flex-1 flex-col gap-1">
-                      <span className="text-[0.62rem] font-bold text-rs-label">End</span>
-                      <input
-                        type="date"
-                        name="end_date"
-                        required
-                        defaultValue={runsheet.end_date}
-                        className="rounded-xl border border-rs-border px-2 py-1.5 text-sm tabular-nums"
-                      />
-                    </label>
-                  </div>
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-rs-primary px-3 py-2 text-xs font-bold text-white shadow-[0_2px_8px_rgba(74,144,226,0.2)]"
-                  >
-                    Save dates
-                  </button>
-                </form>
-              </section>
-            </>
+                </div>
+                <button type="submit" className="rs-btn rs-btn-primary w-full">
+                  Save
+                </button>
+              </form>
+            </section>
           )}
         </div>
 

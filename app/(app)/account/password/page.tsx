@@ -16,7 +16,7 @@ export default async function PasswordPage({
         </div>
         <form action={updatePassword} className="rs-card space-y-4">
           {error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p className="rs-alert-danger text-sm">
               {decodeURIComponent(error)}
             </p>
           ) : null}

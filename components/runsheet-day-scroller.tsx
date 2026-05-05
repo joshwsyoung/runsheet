@@ -4,7 +4,7 @@ import Link from "next/link";
 import { DateTime } from "luxon";
 import { useEffect, useRef } from "react";
 
-export type RunsheetDayChip = { ymd: string; href: string };
+export type RunsheetDayChip = { ymd: string; href: string; slotCount?: number };
 
 type RunsheetDayScrollerProps = {
   tz: string;
@@ -30,11 +30,11 @@ export function RunsheetDayScroller({
   return (
     <div className="-mx-1 flex justify-center px-1">
       <div
-        className="flex max-w-full snap-x snap-mandatory gap-1 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex max-w-full snap-x snap-mandatory gap-1 overflow-x-auto scroll-smooth pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="list"
         aria-label="Days"
       >
-        {chips.map(({ ymd, href }) => {
+        {chips.map(({ ymd, href, slotCount = 0 }) => {
           const dt = DateTime.fromISO(ymd, { zone: tz });
           const isFocus = ymd === focusYmd;
           const isToday = ymd === todayYmd;
@@ -53,10 +53,21 @@ export function RunsheetDayScroller({
               }}
               aria-current={isFocus ? "date" : undefined}
               data-focus={isFocus ? "true" : undefined}
-              className={`flex h-[56px] w-[46px] shrink-0 snap-center flex-col items-center justify-center rounded-xl no-underline ${chip}`}
+              className={`relative flex h-[56px] w-[46px] shrink-0 snap-center flex-col items-center justify-center rounded-xl no-underline ${chip}`}
             >
               <span className="text-[0.55rem] font-bold uppercase opacity-80">{dt.toFormat("ccc")}</span>
               <span className="text-sm font-bold">{dt.toFormat("d")}</span>
+              {slotCount > 0 ? (
+                <span
+                  className={`absolute -right-1 top-0 inline-flex min-w-4 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[0.58rem] font-bold ${
+                    isFocus ? "bg-white text-rs-primary" : "bg-rs-primary text-white"
+                  }`}
+                  aria-label={`${slotCount} slots`}
+                  title={`${slotCount} slots`}
+                >
+                  {slotCount > 9 ? "9+" : slotCount}
+                </span>
+              ) : null}
             </Link>
           );
         })}

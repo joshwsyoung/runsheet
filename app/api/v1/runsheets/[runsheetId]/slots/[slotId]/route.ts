@@ -75,6 +75,29 @@ export async function PATCH(request: Request, context: Ctx) {
     body.linkUrl != null ? String(body.linkUrl).trim() || null : body.link_url != null
       ? String(body.link_url).trim() || null
       : null;
+  const mapUrl = body.mapUrl != null ? String(body.mapUrl).trim() || null : body.map_url != null
+    ? String(body.map_url).trim() || null
+    : null;
+  const fromLocation = body.fromLocation != null
+    ? String(body.fromLocation).trim() || null
+    : body.from_location != null
+      ? String(body.from_location).trim() || null
+      : null;
+  const toLocation = body.toLocation != null
+    ? String(body.toLocation).trim() || null
+    : body.to_location != null
+      ? String(body.to_location).trim() || null
+      : null;
+  const flightNumber = body.flightNumber != null
+    ? String(body.flightNumber).trim() || null
+    : body.flight_number != null
+      ? String(body.flight_number).trim() || null
+      : null;
+  const locationName = body.locationName != null
+    ? String(body.locationName).trim() || null
+    : body.location_name != null
+      ? String(body.location_name).trim() || null
+      : null;
   const bookingRef =
     body.bookingRef != null
       ? String(body.bookingRef).trim() || null
@@ -102,6 +125,11 @@ export async function PATCH(request: Request, context: Ctx) {
       description,
       descriptionBullets,
       linkUrl,
+      mapUrl,
+      fromLocation,
+      toLocation,
+      flightNumber,
+      locationName,
       bookingRef,
       contactInfo,
       openEnd,

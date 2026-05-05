@@ -20,7 +20,7 @@ export default async function SignupPage({
       ) : (
         <form action={signUpWithPassword} className="rs-card space-y-4">
           {sp.error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p className="rs-alert-danger text-sm">
               {decodeURIComponent(sp.error)}
             </p>
           ) : null}

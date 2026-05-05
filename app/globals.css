@@ -52,7 +52,7 @@ body {
   color-scheme: dark;
 }
 
-.dark input:is([type="text"], [type="email"], [type="password"], [type="date"], [type="datetime-local"], [type="time"], [type="number"]),
+.dark input:is([type="text"], [type="email"], [type="password"], [type="date"], [type="datetime-local"], [type="time"], [type="number"], [type="url"], [type="search"], [type="tel"]),
 .dark select,
 .dark textarea {
   background-color: var(--color-rs-fill);
@@ -83,6 +83,24 @@ body {
   }
   .rs-slot {
     @apply absolute left-0 right-0 overflow-hidden rounded-lg border-l-[4px] bg-rs-surface px-2 py-1 text-[0.72rem] font-bold leading-tight shadow-[0_2px_6px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)];
+  }
+  .rs-btn {
+    @apply inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-bold transition;
+  }
+  .rs-btn-sm {
+    @apply h-8 px-3 text-xs;
+  }
+  .rs-btn-primary {
+    @apply bg-rs-primary text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)];
+  }
+  .rs-btn-secondary {
+    @apply border border-rs-border bg-rs-surface text-rs-secondary;
+  }
+  .rs-btn-danger {
+    @apply border border-red-300 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200;
+  }
+  .rs-alert-danger {
+    @apply rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200;
   }
 }
 
