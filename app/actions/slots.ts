@@ -7,6 +7,14 @@ import { createClient } from "@/lib/supabase/server";
 import type { RunsheetDb } from "@/lib/supabase/db-client";
 import { localWallRangeEndUtcIso, localWallToUtcIso } from "@/lib/dates";
 import { normalizeActivityType } from "@/lib/activity-types";
+import {
+  mergeSlotTodosFromLines,
+  newTodoId,
+  normalizeSlotTodosForWrite,
+  parseSlotTodosFromJson,
+  slotTodosToDbJson,
+  type SlotTodoItem,
+} from "@/lib/slot-todos";
 
 function endIsoForSlot(
   startDayYmd: string,
@@ -52,7 +60,7 @@ export async function createSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
-  todos?: string[];
+  todos?: string[] | SlotTodoItem[];
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -76,7 +84,7 @@ export async function createSlot(input: {
   if (!day) return null;
 
   const bullets = input.descriptionBullets?.filter(Boolean) ?? [];
-  const todos = input.todos?.map((s) => s.trim()).filter(Boolean) ?? [];
+  const todos = slotTodosToDbJson(normalizeSlotTodosForWrite(input.todos));
 
   const { data, error } = await supabase
     .from("slots")
@@ -128,7 +136,7 @@ export async function updateSlot(input: {
   bookingRef?: string | null;
   contactInfo?: string | null;
   openEnd?: boolean;
-  todos?: string[];
+  todos?: string[] | SlotTodoItem[];
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -154,7 +162,7 @@ export async function updateSlot(input: {
   const bullets = input.descriptionBullets?.filter(Boolean) ?? [];
   const todosClean =
     input.todos !== undefined
-      ? input.todos.map((s) => s.trim()).filter(Boolean)
+      ? slotTodosToDbJson(normalizeSlotTodosForWrite(input.todos))
       : undefined;
 
   await supabase
@@ -235,10 +243,14 @@ export async function updateSlotFromForm(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const todosRaw = String(formData.get("todos") ?? "");
-  const todos = todosRaw
+  const supabase = await createClient();
+  const { data: curSlot } = await supabase.from("slots").select("todos").eq("id", slotId).maybeSingle();
+  const prevTodos = parseSlotTodosFromJson(curSlot?.todos);
+  const lines = todosRaw
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  const todos = mergeSlotTodosFromLines(prevTodos, lines);
 
   await updateSlot({
     runsheetId,
@@ -292,10 +304,11 @@ export async function createSlotFromForm(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const todosRaw = String(formData.get("todos") ?? "");
-  const todos = todosRaw
+  const lines = todosRaw
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
+  const todos = mergeSlotTodosFromLines([], lines);
 
   const id = await createSlot({
     runsheetId,
@@ -323,4 +336,57 @@ export async function createSlotFromForm(formData: FormData) {
     redirect(`/runsheet/${runsheetId}/activity/${id}`);
   }
   redirect(`/runsheet/${runsheetId}?day=${startDayYmd}&error=slot`);
+}
+
+export async function toggleSlotTodoItem(formData: FormData) {
+  const runsheetId = String(formData.get("runsheet_id") ?? "");
+  const slotId = String(formData.get("slot_id") ?? "");
+  const todoId = String(formData.get("todo_id") ?? "");
+  const done = formData.get("done") === "true";
+  if (!runsheetId || !slotId || !todoId) return;
+
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("slots").select("todos").eq("id", slotId).maybeSingle();
+  if (!row) return;
+
+  const items = parseSlotTodosFromJson(row.todos);
+  const next = items.map((item) =>
+    item.id === todoId ? { ...item, done } : item,
+  );
+
+  await supabase
+    .from("slots")
+    .update({
+      todos: slotTodosToDbJson(next),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", slotId);
+
+  revalidatePath(`/runsheet/${runsheetId}`);
+  revalidatePath(`/runsheet/${runsheetId}/activity/${slotId}`);
+}
+
+export async function addSlotTodoFromForm(formData: FormData) {
+  const runsheetId = String(formData.get("runsheet_id") ?? "");
+  const slotId = String(formData.get("slot_id") ?? "");
+  const text = String(formData.get("text") ?? "").trim();
+  if (!runsheetId || !slotId || !text) return;
+
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("slots").select("todos").eq("id", slotId).maybeSingle();
+  if (!row) return;
+
+  const items = parseSlotTodosFromJson(row.todos);
+  items.push({ id: newTodoId(), text, done: false });
+
+  await supabase
+    .from("slots")
+    .update({
+      todos: slotTodosToDbJson(items),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", slotId);
+
+  revalidatePath(`/runsheet/${runsheetId}`);
+  revalidatePath(`/runsheet/${runsheetId}/activity/${slotId}`);
 }

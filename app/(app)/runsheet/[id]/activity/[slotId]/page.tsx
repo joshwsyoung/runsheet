@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { DateTime } from "luxon";
 import { activityMeta } from "@/lib/activity-types";
 import { clampYmdToRange } from "@/lib/dates";
-import { slotHm, bulletsFromRow, todosFromRow, slotSpansNextCalendarDay } from "@/lib/slot-display";
+import { slotHm, bulletsFromRow, slotTodoItemsFromRow, slotSpansNextCalendarDay } from "@/lib/slot-display";
+import { linesFromSlotTodos } from "@/lib/slot-todos";
 import {
   updateSlotFromForm,
   deleteSlotFromForm,
+  toggleSlotTodoItem,
+  addSlotTodoFromForm,
 } from "@/app/actions/slots";
 import { LinkPreviewButton } from "@/components/link-preview-button";
 import { SlotCoreFields } from "@/components/slot-core-fields";
@@ -47,7 +50,7 @@ export default async function ActivityPage({
   const dayYmd = d.day_date;
   const meta = activityMeta(s.activity_type);
   const bullets = bulletsFromRow(s);
-  const todos = todosFromRow(s);
+  const todoItems = slotTodoItemsFromRow(s);
   const startHm = slotHm(s.start_at, tz);
   const endHm = s.open_ended ? "" : slotHm(s.end_at, tz);
   const overnight = slotSpansNextCalendarDay(s.start_at, s.end_at, tz, s.open_ended);
@@ -153,16 +156,45 @@ export default async function ActivityPage({
               </ul>
             ) : null}
 
-            {todos.length ? (
-              <div>
-                <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">To-dos</p>
-                <ul className="mt-1 space-y-1 border-l-2 border-amber-400 pl-3 text-sm text-rs-secondary">
-                  {todos.map((t) => (
-                    <li key={t}>{t}</li>
+            <div className="rounded-xl border border-amber-400/35 bg-rs-muted-surface/50 p-3">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">To-dos</p>
+              {todoItems.length ? (
+                <ul className="mt-2 space-y-2 border-l-2 border-amber-400 pl-3 text-sm">
+                  {todoItems.map((item) => (
+                    <li key={item.id} className="flex items-start gap-2 text-rs-secondary">
+                      <form action={toggleSlotTodoItem} className="no-print inline shrink-0">
+                        <input type="hidden" name="runsheet_id" value={runsheetId} />
+                        <input type="hidden" name="slot_id" value={slotId} />
+                        <input type="hidden" name="todo_id" value={item.id} />
+                        <input type="hidden" name="done" value={item.done ? "false" : "true"} />
+                        <button
+                          type="submit"
+                          className="font-[inherit] leading-none text-rs-muted"
+                          aria-label={item.done ? "Mark not done" : "Mark done"}
+                        >
+                          {item.done ? "☑" : "☐"}
+                        </button>
+                      </form>
+                      <span className={item.done ? "text-rs-label line-through" : ""}>{item.text}</span>
+                    </li>
                   ))}
                 </ul>
-              </div>
-            ) : null}
+              ) : (
+                <p className="mt-2 text-xs text-rs-label">None yet — add below or from the trips list.</p>
+              )}
+              <form action={addSlotTodoFromForm} className="no-print mt-3 flex gap-2">
+                <input type="hidden" name="runsheet_id" value={runsheetId} />
+                <input type="hidden" name="slot_id" value={slotId} />
+                <input
+                  name="text"
+                  placeholder="Add a to-do"
+                  className="min-w-0 flex-1 rounded-xl border border-rs-border px-2 py-1.5 text-sm"
+                />
+                <button type="submit" className="rounded-xl bg-rs-primary px-3 py-1.5 text-xs font-bold text-white">
+                  Add
+                </button>
+              </form>
+            </div>
 
             <dl className="grid grid-cols-[1fr_2fr] gap-x-2 gap-y-2 text-sm">
               <dt className="font-bold text-rs-label">From</dt>
@@ -231,7 +263,7 @@ export default async function ActivityPage({
                   <textarea
                     name="todos"
                     rows={3}
-                    defaultValue={todos.join("\n")}
+                    defaultValue={linesFromSlotTodos(todoItems)}
                     className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
                   />
                 </div>

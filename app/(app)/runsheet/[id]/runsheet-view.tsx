@@ -15,8 +15,10 @@ import {
   slotHm,
   slotHourGridPlacement,
   slotSpansNextCalendarDay,
-  todosFromRow,
+  slotTodoItemsFromRow,
 } from "@/lib/slot-display";
+import { slotTodoProgressLabel } from "@/lib/slot-todos";
+import { SlotTodosFooter } from "@/components/slot-todos-footer";
 import type { Database } from "@/lib/database.types";
 import { RunsheetDayScroller } from "@/components/runsheet-day-scroller";
 import { RunsheetMoreMenu } from "@/components/runsheet-more-menu";
@@ -213,11 +215,15 @@ export async function RunsheetView({
               focusSlots.map((slot) => {
                 const meta = activityMeta(slot.activity_type);
                 const bullets = bulletsFromRow(slot);
+                const slotTodos = slotTodoItemsFromRow(slot);
                 return (
-                  <Link
+                  <div
                     key={slot.id}
+                    className="mb-3 overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)] dark:hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
+                  >
+                  <Link
                     href={`/runsheet/${id}/activity/${slot.id}`}
-                    className="rs-card mb-3 block w-full cursor-pointer text-left font-[inherit] text-inherit no-underline transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rs-primary"
+                    className="block w-full cursor-pointer p-3 text-left font-[inherit] text-inherit no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rs-primary"
                   >
                     <div className="flex items-start gap-3">
                       <div className="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 py-2">
@@ -263,6 +269,8 @@ export async function RunsheetView({
                       ) : null}
                     </div>
                   </Link>
+                  <SlotTodosFooter runsheetId={id} slotId={slot.id} items={slotTodos} />
+                  </div>
                 );
               })
             )}
@@ -378,9 +386,11 @@ export async function RunsheetView({
                       const endLabel = slot.open_ended
                         ? "open"
                         : `${slotHm(slot.end_at, tz)}${crossesMidnight ? "+" : ""}`;
-                      const nTodo = todosFromRow(slot).length;
+                      const todoItems = slotTodoItemsFromRow(slot);
                       const todoNote =
-                        nTodo > 0 ? ` · ${nTodo} to-do${nTodo > 1 ? "s" : ""}` : "";
+                        todoItems.length > 0
+                          ? ` · ${slotTodoProgressLabel(todoItems)} to-do${todoItems.length > 1 ? "s" : ""}`
+                          : "";
                       return (
                         <Link
                           key={slot.id}
@@ -424,7 +434,7 @@ export async function RunsheetView({
                       ) : (
                         <ul className="space-y-2">
                           {rows.map((slot) => {
-                            const nTodo = todosFromRow(slot).length;
+                            const todoItems = slotTodoItemsFromRow(slot);
                             const crosses = slotSpansNextCalendarDay(
                               slot.start_at,
                               slot.end_at,
@@ -434,7 +444,9 @@ export async function RunsheetView({
                             const endShown =
                               slot.open_ended ? "open" : `${slotHm(slot.end_at, tz)}${crosses ? "+" : ""}`;
                             const todoNote =
-                              nTodo > 0 ? ` · ${nTodo} to-do${nTodo > 1 ? "s" : ""}` : "";
+                              todoItems.length > 0
+                                ? ` · ${slotTodoProgressLabel(todoItems)} to-do${todoItems.length > 1 ? "s" : ""}`
+                                : "";
                             return (
                               <li key={slot.id} className="text-[0.78rem]">
                                 <Link

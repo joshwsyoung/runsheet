@@ -42,6 +42,16 @@ export const openApiSpec = {
           is_special: { type: "boolean" },
         },
       },
+      SlotTodoItem: {
+        type: "object",
+        description: "Structured slot to-do with stable id for toggling completion",
+        properties: {
+          id: { type: "string", format: "uuid", description: "Omitted on create = server assigns id" },
+          text: { type: "string" },
+          done: { type: "boolean" },
+        },
+        required: ["text"],
+      },
       Slot: {
         type: "object",
         properties: {
@@ -69,7 +79,14 @@ export const openApiSpec = {
           title: { type: "string", nullable: true },
           description: { type: "string", nullable: true },
           description_bullets: { type: "array", items: { type: "string" } },
-          todos: { type: "array", items: { type: "string" }, description: "Prep to-dos before the activity" },
+          todos: {
+            description:
+              "Prep to-dos: legacy string lines, or objects { id?, text, done? }. Responses may include either shape until migrated.",
+            type: "array",
+            items: {
+              oneOf: [{ type: "string" }, { $ref: "#/components/schemas/SlotTodoItem" }],
+            },
+          },
           from_location: { type: "string", nullable: true },
           to_location: { type: "string", nullable: true },
           flight_number: { type: "string", nullable: true },
@@ -221,6 +238,13 @@ export const openApiSpec = {
                   bookingRef: { type: "string" },
                   contactInfo: { type: "string" },
                   openEnd: { type: "boolean" },
+                  todos: {
+                    type: "array",
+                    description: "String lines (all unchecked) or SlotTodoItem objects",
+                    items: {
+                      oneOf: [{ type: "string" }, { $ref: "#/components/schemas/SlotTodoItem" }],
+                    },
+                  },
                 },
               },
             },

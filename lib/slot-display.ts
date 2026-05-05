@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import type { Database } from "@/lib/database.types";
+import { parseSlotTodosFromJson, type SlotTodoItem } from "@/lib/slot-todos";
 
 export type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
 
@@ -34,12 +35,14 @@ export function bulletsFromRow(row: SlotRow): string[] {
   return [];
 }
 
+/** Structured slot to-dos (supports legacy string arrays in DB). */
+export function slotTodoItemsFromRow(row: SlotRow): SlotTodoItem[] {
+  return parseSlotTodosFromJson(row.todos);
+}
+
+/** @deprecated Prefer slotTodoItemsFromRow — kept for call sites that only need text lines. */
 export function todosFromRow(row: SlotRow): string[] {
-  const raw = row.todos;
-  if (Array.isArray(raw)) {
-    return raw.filter((x): x is string => typeof x === "string");
-  }
-  return [];
+  return slotTodoItemsFromRow(row).map((i) => i.text);
 }
 
 /** True when local end calendar date is after local start (overnight span). */
