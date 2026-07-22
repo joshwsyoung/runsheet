@@ -48,6 +48,8 @@ export type DayPayload = {
 
 /** Height of the sticky AppHeader (h-12), which the day strip pins directly beneath. */
 const APP_HEADER_PX = 48;
+/** Height of TripHeroImage (h-28) — the view tabs straddle its lower edge. */
+const HERO_PX = 112;
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
 const HOUR_PX = 48;
@@ -290,7 +292,34 @@ export function RunsheetApp({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3 border-b border-rs-border bg-rs-surface px-4 py-5">
+      {/* Tabs float over the bottom of the hero image — the parent card is relative.
+          Frosted backing so they stay legible over any photo. */}
+      <div
+        className="no-print absolute left-3 z-10 inline-flex gap-1 rounded-[12px] bg-rs-surface/85 p-1 shadow-[0_2px_10px_rgba(0,0,0,0.18)] backdrop-blur"
+        style={{ top: HERO_PX - 22 }}
+        role="tablist"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "list"}
+          onClick={() => setTab("list")}
+          className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
+        >
+          List
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "schedule"}
+          onClick={() => setTab("schedule")}
+          className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
+        >
+          Schedule
+        </button>
+      </div>
+
+      <div className="flex items-start justify-between gap-3 border-b border-rs-border bg-rs-surface px-4 pb-4 pt-5">
         <div className="min-w-0">
           <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
             Trip
@@ -300,26 +329,6 @@ export function RunsheetApp({
             {DateTime.fromISO(startDate, { zone: tz }).toFormat("d MMM yyyy")} –{" "}
             {DateTime.fromISO(endDate, { zone: tz }).toFormat("d MMM yyyy")}
           </p>
-          <div className="no-print mt-2 inline-flex gap-1 rounded-[10px] bg-rs-fill p-1" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "list"}
-              onClick={() => setTab("list")}
-              className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
-            >
-              List
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "schedule"}
-              onClick={() => setTab("schedule")}
-              className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
-            >
-              Schedule
-            </button>
-          </div>
         </div>
         <div className="no-print flex shrink-0 flex-col items-end gap-2 pt-0.5">
           <Link
@@ -808,18 +817,19 @@ function SlotCard({
         >
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <ActivityIcon
-                  type={slot.activity_type}
-                  className="h-3.5 w-3.5 shrink-0"
-                  color={meta.border}
-                />
-                <span className="text-[0.6rem] font-bold uppercase tracking-wide text-rs-label">
-                  {meta.label}
-                </span>
-              </div>
-              {/* Full title — no longer competing with a big time badge for width. */}
-              <p className="mt-1 text-[0.95rem] font-bold leading-snug">
+              {/* Time leads the card: side by side, not stacked. */}
+              <p className="text-[0.78rem] font-bold tabular-nums text-rs-secondary">
+                {slotHm(slot.start_at, tz)}
+                {slot.open_ended ? (
+                  <span className="pl-1 font-normal text-rs-label">onwards</span>
+                ) : (
+                  <>
+                    <span className="px-1 font-normal text-rs-label">to</span>
+                    {endLabel}
+                  </>
+                )}
+              </p>
+              <p className="mt-0.5 text-[0.95rem] font-bold leading-snug">
                 {slot.title ?? "Untitled"}
               </p>
               {slot.description ? (
@@ -828,11 +838,14 @@ function SlotCard({
                 </p>
               ) : null}
             </div>
-            {/* Time as a footnote in the corner rather than a column of its own. */}
-            <span className="shrink-0 pt-0.5 text-right text-[0.65rem] font-bold leading-tight tabular-nums text-rs-label">
-              {slotHm(slot.start_at, tz)}
-              <br />
-              {endLabel}
+            {/* Type moves to the corner — it's context, not the headline. */}
+            <span className="flex shrink-0 items-center gap-1 pt-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-rs-label">
+              <ActivityIcon
+                type={slot.activity_type}
+                className="h-3.5 w-3.5 shrink-0"
+                color={meta.border}
+              />
+              {meta.label}
             </span>
           </div>
         </div>

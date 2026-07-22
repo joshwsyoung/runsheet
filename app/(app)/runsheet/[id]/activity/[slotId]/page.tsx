@@ -10,6 +10,8 @@ import {
   Check,
   Square,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { activityMeta } from "@/lib/activity-types";
@@ -32,32 +34,33 @@ import {
 } from "@/app/actions/slots";
 import { LinkPreviewButton } from "@/components/link-preview-button";
 import { SlotCoreFields } from "@/components/slot-core-fields";
+import { CopyChip } from "@/components/copy-chip";
+import { ScrollTop } from "@/components/scroll-top";
+import { SlotMap } from "@/components/slot-map";
 import type { Database } from "@/lib/database.types";
 
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
 type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 
+type RowSpec = { label: string; value?: string | null; copyable?: boolean };
+
 /** A labelled row. Renders nothing when there is no value — no "—" filler. */
-function Row({ label, value }: { label: string; value?: string | null }) {
+function Row({ label, value, copyable }: RowSpec) {
   if (!value || !value.trim()) return null;
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-rs-border py-2 last:border-b-0">
+    <div className="flex items-center justify-between gap-4 border-b border-rs-border py-2 last:border-b-0">
       <dt className="shrink-0 text-[0.7rem] font-bold uppercase tracking-wide text-rs-label">
         {label}
       </dt>
-      <dd className="min-w-0 break-words text-right text-[0.85rem] text-rs-text">{value}</dd>
+      <dd className="min-w-0 break-words text-right text-[0.85rem] text-rs-text">
+        {copyable ? <CopyChip value={value} label={label} /> : value}
+      </dd>
     </div>
   );
 }
 
 /** A card of rows. Renders nothing when every row inside is empty. */
-function Section({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: { label: string; value?: string | null }[];
-}) {
+function Section({ title, rows }: { title: string; rows: RowSpec[] }) {
   const populated = rows.filter((r) => r.value && r.value.trim());
   if (populated.length === 0) return null;
   return (
@@ -67,7 +70,7 @@ function Section({
       </h2>
       <dl className="mt-1">
         {populated.map((r) => (
-          <Row key={r.label} label={r.label} value={r.value} />
+          <Row key={r.label} {...r} />
         ))}
       </dl>
     </section>
@@ -124,6 +127,25 @@ export default async function ActivityPage({
   const actions = slotActions(s);
   const backHref = `/runsheet/${runsheetId}?day=${dayYmd}`;
 
+  // Neighbours across the whole trip, in time order — so you can walk the itinerary
+  // without bouncing back to the list between each one.
+  const { data: allDays } = await supabase
+    .from("runsheet_days")
+    .select("id")
+    .eq("runsheet_id", runsheetId);
+  const dayIds = (allDays ?? []).map((r) => r.id);
+  const { data: siblings } = dayIds.length
+    ? await supabase
+        .from("slots")
+        .select("id, title, start_at")
+        .in("day_id", dayIds)
+        .order("start_at", { ascending: true })
+    : { data: null };
+  const ordered = (siblings ?? []) as { id: string; title: string | null; start_at: string }[];
+  const here = ordered.findIndex((r) => r.id === slotId);
+  const prev = here > 0 ? ordered[here - 1] : null;
+  const next = here >= 0 && here < ordered.length - 1 ? ordered[here + 1] : null;
+
   const airports =
     flightMeta.departureAirport || flightMeta.arrivalAirport
       ? `${flightMeta.departureAirport ?? "?"} → ${flightMeta.arrivalAirport ?? "?"}`
@@ -135,6 +157,7 @@ export default async function ActivityPage({
 
   return (
     <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-12 sm:p-2.5">
+      <ScrollTop token={slotId} />
       <div className="w-full max-w-[450px]">
         {/* Type band — colour and icon carry the activity type. */}
         <div
@@ -353,12 +376,19 @@ export default async function ActivityPage({
                 </section>
               ) : null}
 
+              <SlotMap
+                from={s.from_location}
+                to={s.to_location}
+                single={s.location_name}
+                accent={meta.border}
+              />
+
               <Section
                 title="Journey"
                 rows={[
                   { label: "From", value: s.from_location },
                   { label: "To", value: s.to_location },
-                  { label: "Flight", value: s.flight_number },
+                  { label: "Flight", value: s.flight_number, copyable: true },
                   { label: "Place", value: s.location_name },
                 ]}
               />
@@ -382,7 +412,7 @@ export default async function ActivityPage({
               <Section
                 title="Booking"
                 rows={[
-                  { label: "Reference", value: s.booking_ref },
+                  { label: "Reference", value: s.booking_ref, copyable: true },
                   { label: "Contact", value: s.contact_info },
                 ]}
               />
@@ -484,6 +514,47 @@ export default async function ActivityPage({
                   </div>
                 </section>
               ) : null}
+
+              {/* Step through the itinerary without returning to the list. Titles are
+                  shown so you can see what is coming rather than just an arrow. */}
+              <nav className="grid grid-cols-2 gap-2" aria-label="Nearby activities">
+                {prev ? (
+                  <Link
+                    href={`/runsheet/${runsheetId}/activity/${prev.id}`}
+                    className="flex min-h-16 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 no-underline"
+                  >
+                    <span className="flex items-center gap-1 text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
+                      <ChevronLeft className="h-3 w-3" aria-hidden />
+                      Before
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 text-[0.78rem] font-bold leading-snug text-rs-text">
+                      {prev.title ?? "Untitled"}
+                    </span>
+                  </Link>
+                ) : (
+                  <span className="rounded-[14px] border border-dashed border-rs-border px-3 py-2 text-[0.7rem] text-rs-label">
+                    Start of the trip
+                  </span>
+                )}
+                {next ? (
+                  <Link
+                    href={`/runsheet/${runsheetId}/activity/${next.id}`}
+                    className="flex min-h-16 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 text-right no-underline"
+                  >
+                    <span className="flex items-center justify-end gap-1 text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
+                      Next
+                      <ChevronRight className="h-3 w-3" aria-hidden />
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 text-[0.78rem] font-bold leading-snug text-rs-text">
+                      {next.title ?? "Untitled"}
+                    </span>
+                  </Link>
+                ) : (
+                  <span className="rounded-[14px] border border-dashed border-rs-border px-3 py-2 text-right text-[0.7rem] text-rs-label">
+                    End of the trip
+                  </span>
+                )}
+              </nav>
 
               <Link
                 href={backHref}
