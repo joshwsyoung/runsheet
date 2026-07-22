@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DateTime } from "luxon";
+import { Plus, Lightbulb, MapPin, AlertTriangle, Check, Square } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/cached-session";
 import { ensureRunsheetDays } from "@/app/actions/days";
 import { toggleChecklistItem, addChecklistItem } from "@/app/actions/checklist";
+import { toggleSlotTodoItem } from "@/app/actions/slots";
 import { activityMeta } from "@/lib/activity-types";
+import { ActivityIcon } from "@/lib/activity-icons";
+import { dayStatusMeta, isOverBudget, LIGHT_DAY_SLOT_BUDGET } from "@/lib/day-status";
+import { placeLink } from "@/lib/places";
 import {
   todayYmdInTz,
   eachYmdInclusive,
@@ -22,6 +28,9 @@ import { SlotTodosFooter } from "@/components/slot-todos-footer";
 import type { Database } from "@/lib/database.types";
 import { RunsheetDayScroller } from "@/components/runsheet-day-scroller";
 import { RunsheetMoreMenu } from "@/components/runsheet-more-menu";
+import { TripHeroImage } from "@/components/trip-hero-image";
+import { DayStatusDot } from "@/components/day-status-dot";
+import { ScrollToDay } from "@/components/scroll-to-day";
 
 type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
@@ -61,6 +70,89 @@ function TripDateSummary({
   return <p className="mt-1 text-[0.8rem] text-rs-muted">{label}</p>;
 }
 
+function SlotCard({
+  runsheetId,
+  slot,
+  tz,
+}: {
+  runsheetId: string;
+  slot: SlotRow;
+  tz: string;
+}) {
+  const meta = activityMeta(slot.activity_type);
+  const bullets = bulletsFromRow(slot);
+  const slotTodos = slotTodoItemsFromRow(slot);
+  const map = placeLink(slot.map_url, slot.location_name);
+  return (
+    <div className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
+      <Link
+        href={`/runsheet/${runsheetId}/activity/${slot.id}`}
+        className="block w-full cursor-pointer p-3 text-left font-[inherit] text-inherit no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rs-primary"
+      >
+        <div className="flex items-start gap-3">
+          <div className="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 py-2">
+            <span className="tabular-nums">{slotHm(slot.start_at, tz)}</span>
+            <ActivityIcon
+              type={slot.activity_type}
+              className="mx-auto h-3.5 w-3.5"
+              color={meta.border}
+            />
+            <span className="tabular-nums">
+              {slot.open_ended ? (
+                <span className="text-[0.7rem] font-bold text-rs-label">open</span>
+              ) : (
+                slotHm(slot.end_at, tz)
+              )}
+            </span>
+          </div>
+          <div
+            className="min-w-0 flex-1 border-l-[4px] pl-3"
+            style={{
+              borderColor: meta.border,
+              background: `linear-gradient(90deg,${meta.tint} 0%,var(--color-rs-surface) 12%)`,
+            }}
+          >
+            <p className="text-[0.9rem] font-bold leading-snug">
+              {slot.title ?? "Untitled"}
+            </p>
+            {slot.description ? (
+              <p className="mt-1 text-[0.8rem] text-rs-muted">{slot.description}</p>
+            ) : null}
+            {bullets.length ? (
+              <ul
+                className="mt-2 space-y-1 border-l-2 pl-3 text-[0.78rem] leading-relaxed text-rs-muted"
+                style={{ borderColor: "var(--color-rs-primary)" }}
+              >
+                {bullets.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          {slot.preview_image_url ? (
+            <div
+              className="h-12 w-12 shrink-0 rounded-lg bg-rs-fill bg-cover bg-center"
+              style={{ backgroundImage: `url(${slot.preview_image_url})` }}
+            />
+          ) : null}
+        </div>
+      </Link>
+      {map ? (
+        <a
+          href={map}
+          target="_blank"
+          rel="noreferrer"
+          className="no-print flex min-h-11 items-center gap-1.5 border-t border-rs-border px-3 py-2 text-[0.75rem] font-bold text-rs-primary no-underline"
+        >
+          <MapPin className="h-3.5 w-3.5" aria-hidden />
+          {slot.location_name ?? "Open in Maps"}
+        </a>
+      ) : null}
+      <SlotTodosFooter runsheetId={runsheetId} slotId={slot.id} items={slotTodos} />
+    </div>
+  );
+}
+
 export async function RunsheetView({
   id,
   searchParams,
@@ -68,15 +160,13 @@ export async function RunsheetView({
   id: string;
   searchParams: { day?: string; tab?: string; sv?: string };
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) notFound();
 
+  const supabase = await createClient();
   const { data: runsheet, error: rsErr } = await supabase
     .from("runsheets")
-    .select("id, title, timezone, start_date, end_date")
+    .select("id, title, timezone, start_date, end_date, hero_image_url")
     .eq("id", id)
     .maybeSingle();
 
@@ -99,26 +189,57 @@ export async function RunsheetView({
   const focusYmd = clampYmdToRange(preliminaryFocus, carouselMin, carouselMax, tz);
   await ensureRunsheetDays(id, labels);
 
-  const { data: days } = await supabase
+  // `status` arrives with 20260722100000_day_status_and_trip_ideas.sql. Fall back to a
+  // status-less read so an un-migrated database still renders the trip.
+  const daysWithStatus = await supabase
     .from("runsheet_days")
-    .select("id, day_date, label, is_special")
+    .select("id, day_date, label, is_special, status")
     .eq("runsheet_id", id)
     .in("day_date", labels)
     .order("day_date", { ascending: true });
 
-  const dayList = (days ?? []) as DayRow[];
+  let dayList = (daysWithStatus.data ?? []) as DayRow[];
+  if (daysWithStatus.error) {
+    const legacy = await supabase
+      .from("runsheet_days")
+      .select("id, day_date, label, is_special")
+      .eq("runsheet_id", id)
+      .in("day_date", labels)
+      .order("day_date", { ascending: true });
+    dayList = ((legacy.data ?? []) as Omit<DayRow, "status">[]).map((d) => ({
+      ...d,
+      status: "free",
+    }));
+  }
+
   const dayIds = dayList.map((d) => d.id);
   const dayByYmd = Object.fromEntries(dayList.map((d) => [d.day_date, d]));
 
-  let slots: SlotRow[] = [];
-  if (dayIds.length > 0) {
-    const { data } = await supabase
-      .from("slots")
-      .select("*")
-      .in("day_id", dayIds)
-      .order("start_at", { ascending: true });
-    slots = (data ?? []) as SlotRow[];
-  }
+  const focusDay = dayByYmd[focusYmd];
+
+  const [slotsRes, checklistRes, ideasRes] = await Promise.all([
+    dayIds.length > 0
+      ? supabase
+          .from("slots")
+          .select("*")
+          .in("day_id", dayIds)
+          .order("start_at", { ascending: true })
+      : Promise.resolve({ data: null as SlotRow[] | null }),
+    dayIds.length > 0
+      ? supabase
+          .from("checklist_items")
+          .select("*")
+          .in("day_id", dayIds)
+          .order("sort_order", { ascending: true })
+      : Promise.resolve({ data: null as CheckRow[] | null }),
+    supabase.from("trip_ideas").select("id").eq("runsheet_id", id),
+  ]);
+
+  const slots = (slotsRes.data ?? []) as SlotRow[];
+  const checklist = (checklistRes.data ?? []) as CheckRow[];
+  // trip_ideas may not exist yet on an un-migrated database — treat that as "no ideas".
+  const ideaCount = ideasRes.error ? 0 : (ideasRes.data?.length ?? 0);
+
   const slotsByDay: Record<string, SlotRow[]> = {};
   for (const s of slots) {
     const day = dayList.find((d) => d.id === s.day_id);
@@ -127,21 +248,17 @@ export async function RunsheetView({
     slotsByDay[day.day_date]!.push(s);
   }
 
-  const focusDay = dayByYmd[focusYmd];
-  const { data: checklistRaw } = focusDay
-    ? await supabase
-        .from("checklist_items")
-        .select("*")
-        .eq("day_id", focusDay.id)
-        .order("sort_order", { ascending: true })
-    : { data: [] as CheckRow[] };
-
-  const checklist = (checklistRaw ?? []) as CheckRow[];
+  const checklistByDayId: Record<string, CheckRow[]> = {};
+  for (const c of checklist) {
+    if (!checklistByDayId[c.day_id]) checklistByDayId[c.day_id] = [];
+    checklistByDayId[c.day_id]!.push(c);
+  }
 
   const tab = searchParams.tab === "schedule" ? "schedule" : "list";
   const sv = searchParams.sv === "all" ? "all" : "hours";
 
   const focusSlots = slotsByDay[focusYmd] ?? [];
+  const todayYmd = todayYmdInTz(tz);
 
   function navDay(day: string) {
     if (tab === "list") return q(id, { day });
@@ -152,6 +269,7 @@ export async function RunsheetView({
     ymd,
     href: navDay(ymd),
     slotCount: slotsByDay[ymd]?.length ?? 0,
+    statusDot: dayStatusMeta(dayByYmd[ymd]?.status).dot,
   }));
 
   return (
@@ -160,6 +278,7 @@ export async function RunsheetView({
       data-print-title={runsheet.title}
     >
       <div className="flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 border-transparent bg-rs-surface shadow-none sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
+        <TripHeroImage src={runsheet.hero_image_url} alt={`${runsheet.title} hero`} />
         <div className="flex items-start justify-between gap-3 border-b border-rs-border bg-rs-surface px-4 py-5">
           <div className="min-w-0">
             <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
@@ -167,6 +286,24 @@ export async function RunsheetView({
             </span>
             <h1 className="mt-0.5 text-[1.1rem] font-bold leading-snug">{runsheet.title}</h1>
             <TripDateSummary startDate={runsheet.start_date} endDate={runsheet.end_date} tz={tz} />
+            <div className="no-print mt-2 inline-flex gap-1 rounded-[10px] bg-rs-fill p-1">
+              <Link
+                href={q(id, { day: focusYmd, tab: "list" })}
+                role="tab"
+                aria-selected={tab === "list"}
+                className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center no-underline shadow-none"
+              >
+                List
+              </Link>
+              <Link
+                href={q(id, { day: focusYmd, tab: "schedule", sv })}
+                role="tab"
+                aria-selected={tab === "schedule"}
+                className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center no-underline shadow-none"
+              >
+                Schedule
+              </Link>
+            </div>
           </div>
           <div className="no-print flex shrink-0 flex-col items-end gap-2 pt-0.5">
             <Link href="/dashboard" className="text-[0.72rem] font-bold text-rs-primary no-underline hover:underline">
@@ -176,147 +313,177 @@ export async function RunsheetView({
           </div>
         </div>
 
-        <div className="border-b border-rs-border px-3 py-3">
+        <div className="no-print sticky top-0 z-10 border-b border-rs-border bg-rs-surface/95 px-3 py-2 backdrop-blur">
           <RunsheetDayScroller
             tz={tz}
             chips={dayChips}
             focusYmd={focusYmd}
-            todayYmd={todayYmdInTz(tz)}
+            todayYmd={todayYmd}
+            mode={tab === "list" ? "jump" : "link"}
           />
-          <div className="no-print mt-2 flex gap-2">
-            <Link
-              href={q(id, { day: focusYmd, tab: "list" })}
-              role="tab"
-              aria-selected={tab === "list"}
-              className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
-            >
-              List
-            </Link>
-            <Link
-              href={q(id, { day: focusYmd, tab: "schedule", sv })}
-              role="tab"
-              aria-selected={tab === "schedule"}
-              className="rs-tab inline-flex flex-1 items-center justify-center text-center no-underline"
-            >
-              Schedule
-            </Link>
-          </div>
         </div>
 
         {tab === "list" ? (
           <div
             role="tabpanel"
-            className="flex-1 bg-rs-surface px-[15px] pb-4 pt-0"
+            className="flex-1 bg-rs-surface px-[15px] pb-4 pt-3"
             id="view-list"
           >
-            {focusSlots.length === 0 ? (
-              <p className="text-center text-sm text-rs-muted">No slots yet.</p>
-            ) : (
-              focusSlots.map((slot) => {
-                const meta = activityMeta(slot.activity_type);
-                const bullets = bulletsFromRow(slot);
-                const slotTodos = slotTodoItemsFromRow(slot);
-                return (
-                  <div
-                    key={slot.id}
-                    className="mb-3 overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)] dark:hover:shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
-                  >
-                  <Link
-                    href={`/runsheet/${id}/activity/${slot.id}`}
-                    className="block w-full cursor-pointer p-3 text-left font-[inherit] text-inherit no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rs-primary"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 py-2">
-                        <span className="tabular-nums">{slotHm(slot.start_at, tz)}</span>
-                        <span className="text-[0.65rem] font-bold text-rs-label">→</span>
-                        <span className="tabular-nums">
-                          {slot.open_ended ? (
-                            <span className="text-[0.7rem] font-bold text-rs-label">open</span>
-                          ) : (
-                            slotHm(slot.end_at, tz)
-                          )}
-                        </span>
-                      </div>
-                      <div
-                        className="min-w-0 flex-1 border-l-[4px] pl-3"
-                        style={{
-                          borderColor: meta.border,
-                          background: `linear-gradient(90deg,${meta.tint} 0%,var(--color-rs-surface) 12%)`,
-                        }}
-                      >
-                        <p className="text-[0.9rem] font-bold leading-snug">
-                          {slot.title ?? "Untitled"}
-                        </p>
-                        {slot.description ? (
-                          <p className="mt-1 text-[0.8rem] text-rs-muted">{slot.description}</p>
+            {dayParam ? <ScrollToDay ymd={focusYmd} /> : null}
+
+            {labels.map((ymd) => {
+              const drow = dayByYmd[ymd];
+              const rows = slotsByDay[ymd] ?? [];
+              const dt = DateTime.fromISO(ymd, { zone: tz });
+              const status = dayStatusMeta(drow?.status);
+              const dayChecklist = drow ? (checklistByDayId[drow.id] ?? []) : [];
+              const dayTodoRows = rows.flatMap((slot) =>
+                slotTodoItemsFromRow(slot).map((item) => ({ slot, item })),
+              );
+              const openTodoCount =
+                dayChecklist.filter((c) => !c.done).length +
+                dayTodoRows.filter((t) => !t.item.done).length;
+              const overBudget = isOverBudget(drow?.status, rows.length);
+
+              return (
+                <section
+                  key={ymd}
+                  id={`day-${ymd}`}
+                  className="mb-7 scroll-mt-24 print-break"
+                >
+                  <div className="mb-2 flex items-baseline justify-between gap-2 border-b border-rs-border pb-1.5">
+                    <div className="min-w-0">
+                      <h2 className="text-[0.95rem] font-bold leading-tight">
+                        {dt.toFormat("cccc d MMM")}
+                        {ymd === todayYmd ? (
+                          <span className="ml-2 rounded-full bg-rs-today px-2 py-0.5 align-middle text-[0.6rem] font-bold uppercase tracking-wide text-rs-primary">
+                            Today
+                          </span>
                         ) : null}
-                        {bullets.length ? (
-                          <ul
-                            className="mt-2 space-y-1 border-l-2 pl-3 text-[0.78rem] leading-relaxed text-rs-muted"
-                            style={{ borderColor: "var(--color-rs-primary)" }}
-                          >
-                            {bullets.map((b) => (
-                              <li key={b}>{b}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                      {slot.preview_image_url ? (
-                        <div
-                          className="h-12 w-12 shrink-0 rounded-lg bg-rs-fill bg-cover bg-center"
-                          style={{ backgroundImage: `url(${slot.preview_image_url})` }}
-                        />
+                      </h2>
+                      {drow?.label ? (
+                        <p className="truncate text-[0.72rem] text-rs-label">{drow.label}</p>
                       ) : null}
                     </div>
-                  </Link>
-                  <SlotTodosFooter runsheetId={id} slotId={slot.id} items={slotTodos} />
+                    {drow ? (
+                      <DayStatusDot runsheetId={id} dayId={drow.id} status={drow.status} />
+                    ) : null}
                   </div>
-                );
-              })
-            )}
 
-            <div className="mt-6 border-t border-rs-border pt-4">
-              <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                Checklist
-              </p>
-              <h3 className="mt-1 text-[0.95rem] font-bold text-rs-text">To-dos</h3>
-              <ul className="mt-3 space-y-2 text-[0.8rem] text-rs-secondary">
-                {checklist.map((item) => (
-                  <li key={item.id} className="flex items-start gap-2">
-                    <form action={toggleChecklistItem} className="inline">
-                      <input type="hidden" name="runsheet_id" value={id} />
-                      <input type="hidden" name="item_id" value={item.id} />
-                      <input type="hidden" name="done" value={item.done ? "false" : "true"} />
-                      <button
-                        type="submit"
-                        className="mt-0.5 font-[inherit] text-rs-muted"
-                        aria-label={item.done ? "Mark not done" : "Mark done"}
-                      >
-                        {item.done ? "☑" : "☐"}
-                      </button>
-                    </form>
-                    <span className={item.done ? "text-rs-label line-through" : ""}>{item.label}</span>
-                  </li>
-                ))}
-              </ul>
-              {focusDay ? (
-                <form action={addChecklistItem} className="mt-3 flex gap-2">
-                  <input type="hidden" name="runsheet_id" value={id} />
-                  <input type="hidden" name="day_id" value={focusDay.id} />
-                  <input
-                    name="label"
-                    placeholder="Add to-do"
-                    className="min-w-0 flex-1 rounded-xl border border-rs-border px-2 py-1.5 text-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-rs-primary px-3 py-1.5 text-xs font-bold text-white"
+                  {overBudget ? (
+                    <p className="mb-2 flex items-start gap-1.5 rounded-lg bg-rs-fill px-2.5 py-2 text-[0.72rem] text-rs-muted">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>
+                        {rows.length} things on a working day. You wanted these kept to{" "}
+                        {LIGHT_DAY_SLOT_BUDGET} or fewer.
+                      </span>
+                    </p>
+                  ) : null}
+
+                  {rows.length === 0 ? (
+                    <p className="py-1 text-[0.78rem] text-rs-label">
+                      Nothing planned{status.label === "Working" ? " — as intended" : " yet"}.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {rows.map((slot) => (
+                        <SlotCard key={slot.id} runsheetId={id} slot={slot} tz={tz} />
+                      ))}
+                    </div>
+                  )}
+
+                  {drow ? (
+                    <details className="no-print mt-2 rounded-[12px] border border-rs-border bg-rs-muted-surface px-3 py-2">
+                      <summary className="cursor-pointer list-none text-[0.72rem] font-bold text-rs-muted">
+                        To-dos{openTodoCount > 0 ? ` · ${openTodoCount} open` : ""}
+                      </summary>
+
+                      <ul className="mt-2 space-y-2 text-[0.78rem] text-rs-secondary">
+                        {dayChecklist.map((item) => (
+                          <li key={item.id} className="flex items-start gap-2">
+                            <form action={toggleChecklistItem} className="inline">
+                              <input type="hidden" name="runsheet_id" value={id} />
+                              <input type="hidden" name="item_id" value={item.id} />
+                              <input type="hidden" name="done" value={item.done ? "false" : "true"} />
+                              <button
+                                type="submit"
+                                className="mt-0.5 font-[inherit] text-rs-muted"
+                                aria-label={item.done ? "Mark not done" : "Mark done"}
+                              >
+                                {item.done ? (
+                                  <Check className="h-4 w-4" aria-hidden />
+                                ) : (
+                                  <Square className="h-4 w-4" aria-hidden />
+                                )}
+                              </button>
+                            </form>
+                            <span className={item.done ? "text-rs-label line-through" : ""}>
+                              {item.label}
+                            </span>
+                          </li>
+                        ))}
+                        {dayTodoRows.map(({ slot, item }) => (
+                          <li key={`${slot.id}:${item.id}`} className="flex items-start gap-2">
+                            <form action={toggleSlotTodoItem} className="inline">
+                              <input type="hidden" name="runsheet_id" value={id} />
+                              <input type="hidden" name="slot_id" value={slot.id} />
+                              <input type="hidden" name="todo_id" value={item.id} />
+                              <input type="hidden" name="done" value={item.done ? "false" : "true"} />
+                              <button
+                                type="submit"
+                                className="mt-0.5 font-[inherit] text-rs-muted"
+                                aria-label={item.done ? "Mark not done" : "Mark done"}
+                              >
+                                {item.done ? (
+                                  <Check className="h-4 w-4" aria-hidden />
+                                ) : (
+                                  <Square className="h-4 w-4" aria-hidden />
+                                )}
+                              </button>
+                            </form>
+                            <div className="min-w-0">
+                              <span className={item.done ? "text-rs-label line-through" : ""}>
+                                {item.text}
+                              </span>
+                              <p className="truncate text-[0.66rem] font-bold text-rs-label">
+                                {slot.title ?? "Untitled slot"}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                        {dayChecklist.length === 0 && dayTodoRows.length === 0 ? (
+                          <li className="text-[0.75rem] text-rs-label">Nothing to do.</li>
+                        ) : null}
+                      </ul>
+
+                      <form action={addChecklistItem} className="mt-3 flex gap-2">
+                        <input type="hidden" name="runsheet_id" value={id} />
+                        <input type="hidden" name="day_id" value={drow.id} />
+                        <input
+                          name="label"
+                          placeholder="Add to-do"
+                          className="min-w-0 flex-1 rounded-xl border border-rs-border bg-rs-surface px-2 py-1.5 text-sm"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-rs-primary px-3 py-1.5 text-xs font-bold text-white"
+                        >
+                          Add
+                        </button>
+                      </form>
+                    </details>
+                  ) : null}
+
+                  <Link
+                    href={`/runsheet/${id}/new?day=${ymd}`}
+                    className="no-print mt-2 flex min-h-11 items-center justify-center gap-1.5 rounded-[12px] border border-dashed border-rs-border text-[0.75rem] font-bold text-rs-label no-underline"
                   >
-                    Add
-                  </button>
-                </form>
-              ) : null}
-            </div>
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
+                    Add to {dt.toFormat("ccc d")}
+                  </Link>
+                </section>
+              );
+            })}
           </div>
         ) : (
           <div
@@ -350,9 +517,18 @@ export async function RunsheetView({
 
             {sv === "hours" ? (
               <div role="tabpanel" id="view-schedule-hours">
-                <p className="mb-2 px-1 text-center text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                  {DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM")} · by hour
-                </p>
+                <div className="mb-2 flex items-center justify-center gap-2 px-1">
+                  <p className="text-center text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                    {DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM")} · by hour
+                  </p>
+                  {focusDay ? (
+                    <DayStatusDot
+                      runsheetId={id}
+                      dayId={focusDay.id}
+                      status={focusDay.status}
+                    />
+                  ) : null}
+                </div>
                 <div
                   className="mx-auto grid max-w-full grid-cols-[2.75rem_1fr] overflow-hidden rounded-xl border border-rs-border"
                   style={{ minHeight: HOURS.length * HOUR_PX }}
@@ -425,8 +601,8 @@ export async function RunsheetView({
                     <div key={ymd} className="rs-card">
                       <div className="mb-2 flex items-baseline justify-between gap-2">
                         <h3 className="text-[0.85rem] font-bold text-rs-text">{title}</h3>
-                        {drow?.label ? (
-                          <span className="text-[0.65rem] font-bold text-rs-label">{drow.label}</span>
+                        {drow ? (
+                          <DayStatusDot runsheetId={id} dayId={drow.id} status={drow.status} />
                         ) : null}
                       </div>
                       {rows.length === 0 ? (
@@ -469,13 +645,26 @@ export async function RunsheetView({
           </div>
         )}
 
-        <div className="no-print fixed bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-rs-page via-rs-page to-transparent p-3 pb-4">
-          <Link
-            href={`/runsheet/${id}/new?day=${focusYmd}`}
-            className="rs-add-btn w-full max-w-[450px] no-underline"
-          >
-            + Add slot
-          </Link>
+        <div className="no-print fixed bottom-0 left-0 right-0 z-20 flex justify-center bg-gradient-to-t from-rs-page via-rs-page to-transparent px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+          <div className="flex w-full max-w-[450px] gap-2">
+            <Link
+              href={`/runsheet/${id}/ideas`}
+              className="flex h-14 shrink-0 items-center gap-1.5 rounded-[14px] border border-rs-border bg-rs-surface px-4 text-[0.85rem] font-bold text-rs-secondary no-underline shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+            >
+              <Lightbulb className="h-4 w-4" aria-hidden />
+              Ideas
+              {ideaCount > 0 ? (
+                <span className="rounded-full bg-rs-fill px-1.5 text-[0.7rem]">{ideaCount}</span>
+              ) : null}
+            </Link>
+            <Link
+              href={`/runsheet/${id}/new?day=${focusYmd}`}
+              className="rs-add-btn flex-1 no-underline"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Add slot
+            </Link>
+          </div>
         </div>
       </div>
     </div>

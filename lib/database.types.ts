@@ -39,6 +39,7 @@ export interface Database {
           end_date: string;
           created_at: string;
           archived_at: string | null;
+          hero_image_url: string | null;
         };
         Insert: {
           id?: string;
@@ -49,6 +50,7 @@ export interface Database {
           end_date: string;
           created_at?: string;
           archived_at?: string | null;
+          hero_image_url?: string | null;
         };
         Update: {
           id?: string;
@@ -59,6 +61,7 @@ export interface Database {
           end_date?: string;
           created_at?: string;
           archived_at?: string | null;
+          hero_image_url?: string | null;
         };
         Relationships: [];
       };
@@ -123,6 +126,8 @@ export interface Database {
           day_date: string;
           label: string | null;
           is_special: boolean;
+          /** 'travel' | 'work' | 'leave' | 'free' — see lib/day-status.ts */
+          status: string;
         };
         Insert: {
           id?: string;
@@ -130,6 +135,7 @@ export interface Database {
           day_date: string;
           label?: string | null;
           is_special?: boolean;
+          status?: string;
         };
         Update: {
           id?: string;
@@ -137,6 +143,47 @@ export interface Database {
           day_date?: string;
           label?: string | null;
           is_special?: boolean;
+          status?: string;
+        };
+        Relationships: [];
+      };
+      trip_ideas: {
+        Row: {
+          id: string;
+          runsheet_id: string;
+          category: string;
+          text: string;
+          note: string | null;
+          place: string | null;
+          image_url: string | null;
+          /** Name was unclear at capture — shown with a badge, never silently cleaned up. */
+          unconfirmed: boolean;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          runsheet_id: string;
+          category?: string;
+          text: string;
+          note?: string | null;
+          place?: string | null;
+          image_url?: string | null;
+          unconfirmed?: boolean;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          runsheet_id?: string;
+          category?: string;
+          text?: string;
+          note?: string | null;
+          place?: string | null;
+          image_url?: string | null;
+          unconfirmed?: boolean;
+          sort_order?: number;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -167,6 +214,8 @@ export interface Database {
           sort_order: number;
           created_at: string;
           updated_at: string;
+          flight_meta: Json | null;
+          attachment_urls: Json | null;
         };
         Insert: {
           id?: string;
@@ -194,6 +243,8 @@ export interface Database {
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
+          flight_meta?: Json | null;
+          attachment_urls?: Json | null;
         };
         Update: {
           id?: string;
@@ -221,6 +272,8 @@ export interface Database {
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
+          flight_meta?: Json | null;
+          attachment_urls?: Json | null;
         };
         Relationships: [];
       };
