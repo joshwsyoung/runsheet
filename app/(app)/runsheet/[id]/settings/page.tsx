@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/cached-session";
 import { inviteToRunsheet } from "@/app/actions/invites";
 import { updateRunsheetSettings } from "@/app/actions/runsheets";
 import type { Database } from "@/lib/database.types";
@@ -36,34 +37,31 @@ export default async function RunsheetSettingsPage({
   const { id } = await params;
   const { error: errorCode } = await searchParams;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const supabase = await createClient();
   const { data: runsheet, error: rsErr } = await supabase
     .from("runsheets")
-    .select("id, title, owner_id, timezone, start_date, end_date")
+    .select("id, title, owner_id, timezone, start_date, end_date, hero_image_url")
     .eq("id", id)
     .maybeSingle();
 
   if (rsErr || !runsheet) notFound();
 
-  const { data: memberRow } = await supabase
-    .from("runsheet_members")
-    .select("role")
-    .eq("runsheet_id", id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   const isOwner = runsheet.owner_id === user.id;
-  const canEditSettings = isOwner || memberRow?.role === "editor";
 
-  const { data: membersRaw } = await supabase
-    .from("runsheet_members")
-    .select("user_id, role, created_at")
-    .eq("runsheet_id", id);
+  const [{ data: memberRow }, { data: membersRaw }] = await Promise.all([
+    supabase
+      .from("runsheet_members")
+      .select("role")
+      .eq("runsheet_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase.from("runsheet_members").select("user_id, role, created_at").eq("runsheet_id", id),
+  ]);
+
+  const canEditSettings = isOwner || memberRow?.role === "editor";
 
   const members = ((membersRaw ?? []) as MemberRow[]).sort(
     (a, b) => roleRank(a.role) - roleRank(b.role),
@@ -80,7 +78,7 @@ export default async function RunsheetSettingsPage({
     invites = (invitesData ?? []) as InviteRow[];
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ?? "";
 
   const tz = runsheet.timezone || "UTC";
   const tripStartFmt = DateTime.fromISO(runsheet.start_date, { zone: tz });
@@ -187,6 +185,16 @@ export default async function RunsheetSettingsPage({
                     />
                   </label>
                 </div>
+                <label className="block">
+                  <span className="mb-1 block text-[0.62rem] font-bold text-rs-label">Trip planner image URL</span>
+                  <input
+                    name="hero_image_url"
+                    type="url"
+                    defaultValue={runsheet.hero_image_url ?? ""}
+                    placeholder="https://..."
+                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                  />
+                </label>
                 <button type="submit" className="rs-btn rs-btn-primary w-full">
                   Save
                 </button>

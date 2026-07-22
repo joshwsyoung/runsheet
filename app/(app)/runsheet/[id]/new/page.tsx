@@ -124,6 +124,17 @@ export default async function NewSlotPage({
               className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
             />
           </div>
+          <div>
+            <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+              Boarding passes / QR links (one per line)
+            </label>
+            <textarea
+              name="attachment_urls"
+              rows={3}
+              placeholder={"https://airline.com/pass/ABC123\nhttps://wallet.example/qr/..."}
+              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+            />
+          </div>
           <button
             type="submit"
             className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"

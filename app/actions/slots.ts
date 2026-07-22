@@ -16,6 +16,30 @@ import {
   type SlotTodoItem,
 } from "@/lib/slot-todos";
 
+function parseJsonStringArray(raw: string): string[] {
+  return raw
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function flightMetaFromForm(formData: FormData): Record<string, string> | null {
+  const entries: Array<[string, string]> = [
+    ["airline", String(formData.get("flight_airline") ?? "").trim()],
+    ["departureAirport", String(formData.get("flight_departure_airport") ?? "").trim()],
+    ["arrivalAirport", String(formData.get("flight_arrival_airport") ?? "").trim()],
+    ["departureTerminal", String(formData.get("flight_departure_terminal") ?? "").trim()],
+    ["arrivalTerminal", String(formData.get("flight_arrival_terminal") ?? "").trim()],
+    ["seat", String(formData.get("flight_seat") ?? "").trim()],
+    ["gate", String(formData.get("flight_gate") ?? "").trim()],
+    ["boardingTime", String(formData.get("flight_boarding_time") ?? "").trim()],
+    ["checkInUrl", String(formData.get("flight_checkin_url") ?? "").trim()],
+  ];
+  const filtered = entries.filter(([, v]) => v);
+  if (!filtered.length) return null;
+  return Object.fromEntries(filtered);
+}
+
 function endIsoForSlot(
   startDayYmd: string,
   endDayYmd: string | null,
@@ -59,6 +83,8 @@ export async function createSlot(input: {
   locationName?: string | null;
   bookingRef?: string | null;
   contactInfo?: string | null;
+  flightMeta?: Record<string, string> | null;
+  attachmentUrls?: string[] | null;
   openEnd?: boolean;
   todos?: string[] | SlotTodoItem[];
 }, client?: RunsheetDb) {
@@ -105,6 +131,8 @@ export async function createSlot(input: {
       link_url: input.linkUrl || null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
+      flight_meta: input.flightMeta ?? null,
+      attachment_urls: input.attachmentUrls ?? null,
       open_ended: Boolean(input.openEnd),
     })
     .select("id");
@@ -135,6 +163,8 @@ export async function updateSlot(input: {
   locationName?: string | null;
   bookingRef?: string | null;
   contactInfo?: string | null;
+  flightMeta?: Record<string, string> | null;
+  attachmentUrls?: string[] | null;
   openEnd?: boolean;
   todos?: string[] | SlotTodoItem[];
 }, client?: RunsheetDb) {
@@ -184,6 +214,8 @@ export async function updateSlot(input: {
       link_url: input.linkUrl ?? null,
       booking_ref: input.bookingRef ?? null,
       contact_info: input.contactInfo ?? null,
+      flight_meta: input.flightMeta ?? null,
+      attachment_urls: input.attachmentUrls ?? null,
       open_ended: Boolean(input.openEnd),
       updated_at: new Date().toISOString(),
     })
@@ -237,6 +269,8 @@ export async function updateSlotFromForm(formData: FormData) {
   const bookingRef = String(formData.get("booking_ref") ?? "").trim() || null;
   const contactInfo = String(formData.get("contact_info") ?? "").trim() || null;
   const openEnd = formData.get("open_end") === "on";
+  const flightMeta = flightMetaFromForm(formData);
+  const attachmentUrls = parseJsonStringArray(String(formData.get("attachment_urls") ?? ""));
   const bulletsRaw = String(formData.get("bullets") ?? "");
   const descriptionBullets = bulletsRaw
     .split("\n")
@@ -272,6 +306,8 @@ export async function updateSlotFromForm(formData: FormData) {
     locationName,
     bookingRef,
     contactInfo,
+    flightMeta,
+    attachmentUrls,
     openEnd,
     todos,
   });
@@ -298,6 +334,8 @@ export async function createSlotFromForm(formData: FormData) {
   const bookingRef = String(formData.get("booking_ref") ?? "").trim() || null;
   const contactInfo = String(formData.get("contact_info") ?? "").trim() || null;
   const openEnd = formData.get("open_end") === "on";
+  const flightMeta = flightMetaFromForm(formData);
+  const attachmentUrls = parseJsonStringArray(String(formData.get("attachment_urls") ?? ""));
   const bulletsRaw = String(formData.get("bullets") ?? "");
   const descriptionBullets = bulletsRaw
     .split("\n")
@@ -329,6 +367,8 @@ export async function createSlotFromForm(formData: FormData) {
     locationName,
     bookingRef,
     contactInfo,
+    flightMeta,
+    attachmentUrls,
     openEnd,
     todos,
   });

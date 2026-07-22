@@ -111,6 +111,17 @@ export async function POST(request: Request, context: Ctx) {
         ? String(body.contact_info).trim() || null
         : null;
   const openEnd = Boolean(body.openEnd ?? body.open_end);
+  const flightMeta =
+    body.flightMeta && typeof body.flightMeta === "object" && !Array.isArray(body.flightMeta)
+      ? (body.flightMeta as Record<string, string>)
+      : body.flight_meta && typeof body.flight_meta === "object" && !Array.isArray(body.flight_meta)
+        ? (body.flight_meta as Record<string, string>)
+        : null;
+  const attachmentUrls = Array.isArray(body.attachmentUrls)
+    ? (body.attachmentUrls as unknown[]).map(String).filter(Boolean)
+    : Array.isArray(body.attachment_urls)
+      ? (body.attachment_urls as unknown[]).map(String).filter(Boolean)
+      : null;
 
   if (!dayYmd || !title) {
     return NextResponse.json(
@@ -138,6 +149,8 @@ export async function POST(request: Request, context: Ctx) {
       locationName,
       bookingRef,
       contactInfo,
+      flightMeta,
+      attachmentUrls,
       openEnd,
       todos,
     },

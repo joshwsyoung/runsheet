@@ -17,6 +17,7 @@ type Props = {
   defaultFlightNumber?: string | null;
   defaultLocationName?: string | null;
   defaultMapUrl?: string | null;
+  defaultFlightMeta?: Record<string, string> | null;
 };
 
 export function SlotCoreFields({
@@ -33,12 +34,16 @@ export function SlotCoreFields({
   defaultFlightNumber,
   defaultLocationName,
   defaultMapUrl,
+  defaultFlightMeta,
 }: Props) {
   const [activityType, setActivityType] = useState<ActivityType>(
     (ACTIVITY_TYPES as readonly string[]).includes(defaultType ?? "")
       ? (defaultType as ActivityType)
       : "other",
   );
+  const [fromLocation, setFromLocation] = useState(defaultFromLocation ?? "");
+  const [toLocation, setToLocation] = useState(defaultToLocation ?? "");
+  const [locationName, setLocationName] = useState(defaultLocationName ?? "");
 
   const titleLabel = useMemo(() => {
     if (activityType === "activity" || activityType === "other") return "Title";
@@ -46,6 +51,15 @@ export function SlotCoreFields({
     if (activityType === "taxi") return "Ride title";
     return "Title";
   }, [activityType]);
+  const locationQuery = useMemo(() => {
+    if (activityType === "flight" || activityType === "taxi" || activityType === "driving") {
+      return [fromLocation, toLocation].filter(Boolean).join(" to ");
+    }
+    return locationName;
+  }, [activityType, fromLocation, toLocation, locationName]);
+  const mapsHref = locationQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
+    : "";
 
   return (
     <>
@@ -76,6 +90,7 @@ export function SlotCoreFields({
             <input
               name="from_location"
               defaultValue={defaultFromLocation ?? ""}
+              onChange={(e) => setFromLocation(e.target.value)}
               placeholder="Origin"
               className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
             />
@@ -87,6 +102,7 @@ export function SlotCoreFields({
             <input
               name="to_location"
               defaultValue={defaultToLocation ?? ""}
+              onChange={(e) => setToLocation(e.target.value)}
               placeholder="Destination"
               className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
             />
@@ -95,17 +111,103 @@ export function SlotCoreFields({
       )}
 
       {activityType === "flight" && (
-        <label>
-          <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
-            Flight number
-          </span>
-          <input
-            name="flight_number"
-            defaultValue={defaultFlightNumber ?? ""}
-            placeholder="BA286"
-            className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-          />
-        </label>
+        <div className="space-y-2 rounded-xl border border-rs-border bg-rs-muted-surface/40 p-3">
+          <p className="text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Flight details</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
+                Flight number
+              </span>
+              <input
+                name="flight_number"
+                defaultValue={defaultFlightNumber ?? ""}
+                placeholder="BA286"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Airline</span>
+              <input
+                name="flight_airline"
+                defaultValue={defaultFlightMeta?.airline ?? ""}
+                placeholder="British Airways"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Departure airport</span>
+              <input
+                name="flight_departure_airport"
+                defaultValue={defaultFlightMeta?.departureAirport ?? ""}
+                placeholder="LHR"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Arrival airport</span>
+              <input
+                name="flight_arrival_airport"
+                defaultValue={defaultFlightMeta?.arrivalAirport ?? ""}
+                placeholder="SFO"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Departure terminal</span>
+              <input
+                name="flight_departure_terminal"
+                defaultValue={defaultFlightMeta?.departureTerminal ?? ""}
+                placeholder="T5"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Arrival terminal</span>
+              <input
+                name="flight_arrival_terminal"
+                defaultValue={defaultFlightMeta?.arrivalTerminal ?? ""}
+                placeholder="International"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Seat</span>
+              <input
+                name="flight_seat"
+                defaultValue={defaultFlightMeta?.seat ?? ""}
+                placeholder="12A"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Gate</span>
+              <input
+                name="flight_gate"
+                defaultValue={defaultFlightMeta?.gate ?? ""}
+                placeholder="B12"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Boarding time</span>
+              <input
+                name="flight_boarding_time"
+                defaultValue={defaultFlightMeta?.boardingTime ?? ""}
+                placeholder="08:35"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+            <label>
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Check-in URL</span>
+              <input
+                name="flight_checkin_url"
+                defaultValue={defaultFlightMeta?.checkInUrl ?? ""}
+                placeholder="https://"
+                className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+        </div>
       )}
 
       {(activityType === "dinner" ||
@@ -119,6 +221,7 @@ export function SlotCoreFields({
           <input
             name="location_name"
             defaultValue={defaultLocationName ?? ""}
+            onChange={(e) => setLocationName(e.target.value)}
             placeholder="Restaurant, beach, museum..."
             className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
           />
@@ -199,6 +302,18 @@ export function SlotCoreFields({
           placeholder="https://maps.google.com/..."
           className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
         />
+        {mapsHref ? (
+          <a
+            className="mt-1 inline-block text-[0.72rem] font-bold text-rs-primary underline"
+            href={mapsHref}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Search this location on Google Maps
+          </a>
+        ) : (
+          <p className="mt-1 text-[0.72rem] text-rs-muted">Add a location name or from/to to enable quick lookup.</p>
+        )}
       </label>
     </>
   );

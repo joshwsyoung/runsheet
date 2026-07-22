@@ -30,20 +30,17 @@ export default async function ActivityPage({
   if (!slot) notFound();
   const s = slot as SlotRow;
 
-  const { data: day } = await supabase
-    .from("runsheet_days")
-    .select("*")
-    .eq("id", s.day_id)
-    .maybeSingle();
+  const [{ data: day }, { data: rs }] = await Promise.all([
+    supabase.from("runsheet_days").select("*").eq("id", s.day_id).maybeSingle(),
+    supabase
+      .from("runsheets")
+      .select("id, title, timezone, start_date, end_date")
+      .eq("id", runsheetId)
+      .maybeSingle(),
+  ]);
   if (!day) notFound();
   const d = day as DayRow;
   if (d.runsheet_id !== runsheetId) notFound();
-
-  const { data: rs } = await supabase
-    .from("runsheets")
-    .select("id, title, timezone, start_date, end_date")
-    .eq("id", runsheetId)
-    .maybeSingle();
   if (!rs) notFound();
 
   const tz = rs.timezone || "UTC";
@@ -59,6 +56,12 @@ export default async function ActivityPage({
   const localEnd = DateTime.fromISO(s.end_at, { zone: "utc" }).setZone(tz);
   const startDayYmd = localStart.toISODate() ?? dayEditDefault;
   const endDayYmd = localEnd.toISODate() ?? dayEditDefault;
+  const flightMeta = (s.flight_meta && typeof s.flight_meta === "object" && !Array.isArray(s.flight_meta))
+    ? (s.flight_meta as Record<string, string>)
+    : {};
+  const attachmentUrls = Array.isArray(s.attachment_urls)
+    ? s.attachment_urls.filter((u): u is string => typeof u === "string" && Boolean(u))
+    : [];
 
   return (
     <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-10 print:pb-4 sm:p-2.5">
@@ -207,7 +210,39 @@ export default async function ActivityPage({
               <dd className="text-rs-text">{s.booking_ref ?? "—"}</dd>
               <dt className="font-bold text-rs-label">Contact</dt>
               <dd className="text-rs-text">{s.contact_info ?? "—"}</dd>
+              {s.activity_type === "flight" ? (
+                <>
+                  <dt className="font-bold text-rs-label">Airline</dt>
+                  <dd className="text-rs-text">{flightMeta.airline ?? "—"}</dd>
+                  <dt className="font-bold text-rs-label">Airport route</dt>
+                  <dd className="text-rs-text">
+                    {(flightMeta.departureAirport || "—") + " → " + (flightMeta.arrivalAirport || "—")}
+                  </dd>
+                  <dt className="font-bold text-rs-label">Terminal</dt>
+                  <dd className="text-rs-text">
+                    {(flightMeta.departureTerminal || "—") + " → " + (flightMeta.arrivalTerminal || "—")}
+                  </dd>
+                  <dt className="font-bold text-rs-label">Seat / Gate</dt>
+                  <dd className="text-rs-text">
+                    {(flightMeta.seat || "—") + " / " + (flightMeta.gate || "—")}
+                  </dd>
+                </>
+              ) : null}
             </dl>
+            {attachmentUrls.length ? (
+              <div>
+                <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">Passes / QR links</p>
+                <ul className="mt-1 space-y-1 text-sm">
+                  {attachmentUrls.map((url) => (
+                    <li key={url}>
+                      <a href={url} target="_blank" rel="noreferrer" className="text-rs-primary underline break-all">
+                        {url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             {s.map_url ? (
               <a
@@ -240,6 +275,7 @@ export default async function ActivityPage({
                   defaultFlightNumber={s.flight_number}
                   defaultLocationName={s.location_name}
                   defaultMapUrl={s.map_url}
+                  defaultFlightMeta={flightMeta}
                 />
                 <label className="flex items-center gap-2 text-sm font-bold text-rs-secondary">
                   <input type="checkbox" name="open_end" defaultChecked={s.open_ended} />
@@ -306,6 +342,17 @@ export default async function ActivityPage({
                   <input
                     name="contact_info"
                     defaultValue={s.contact_info ?? ""}
+                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                    Boarding passes / QR links (one per line)
+                  </label>
+                  <textarea
+                    name="attachment_urls"
+                    rows={3}
+                    defaultValue={attachmentUrls.join("\n")}
                     className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
                   />
                 </div>

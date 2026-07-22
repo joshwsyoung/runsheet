@@ -4,9 +4,9 @@ import { requestPasswordReset } from "@/app/actions/auth";
 export default async function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string }>;
+  searchParams: Promise<{ sent?: string; error?: string }>;
 }) {
-  const { sent } = await searchParams;
+  const { sent, error } = await searchParams;
   return (
     <div className="space-y-6">
       <div>
@@ -21,6 +21,30 @@ export default async function ForgotPasswordPage({
         </div>
       ) : (
         <form action={requestPasswordReset} className="rs-card space-y-4">
+          {error ? (
+            <p className="rs-alert-danger text-sm">
+              {(() => {
+                let errText = error;
+                try {
+                  errText = decodeURIComponent(error);
+                } catch {
+                  /* keep raw */
+                }
+                return (
+                  <>
+                    {errText}
+                    {/rate|too many|smtp|limit exceeded/i.test(errText) ? (
+                      <span className="mt-2 block text-[0.85rem] font-normal text-rs-secondary">
+                        Supabase&apos;s built-in email is heavily rate-limited. Wait an hour, configure
+                        custom SMTP for higher limits, or set a new password from Supabase →
+                        Authentication → Users.
+                      </span>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </p>
+          ) : null}
           <div>
             <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
               Email

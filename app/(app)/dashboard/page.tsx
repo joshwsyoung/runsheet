@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/cached-session";
 import { signOut } from "@/app/actions/auth";
 import { RunsheetListClient } from "@/components/dashboard/runsheet-list-client";
 
@@ -25,11 +26,10 @@ export default async function DashboardPage({
   const { error: errorCode } = await searchParams;
   const createErrorMessage = createRunsheetErrorMessage(errorCode);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
+
+  const supabase = await createClient();
 
   const { data: runsheets } = await supabase
     .from("runsheets")

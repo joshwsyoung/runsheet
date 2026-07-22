@@ -120,6 +120,7 @@ export async function updateRunsheetSettings(formData: FormData) {
   const runsheetId = String(formData.get("runsheet_id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
   const timezone = String(formData.get("timezone") ?? "UTC").trim() || "UTC";
+  const heroImageUrl = String(formData.get("hero_image_url") ?? "").trim() || null;
   const startDate = parseIsoDate(formData.get("start_date"));
   const endDate = parseIsoDate(formData.get("end_date"));
   if (!runsheetId || !title) {
@@ -140,6 +141,7 @@ export async function updateRunsheetSettings(formData: FormData) {
       timezone,
       start_date: startDate,
       end_date: endDate,
+      hero_image_url: heroImageUrl,
     })
     .eq("id", runsheetId);
   if (error) {
