@@ -42,6 +42,9 @@ export type DayPayload = {
   status: string;
 };
 
+/** Height of the sticky AppHeader (h-12), which the day strip pins directly beneath. */
+const APP_HEADER_PX = 48;
+
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
 const HOUR_PX = 48;
 const GRID_START_HOUR = 6;
@@ -213,8 +216,8 @@ export function RunsheetApp({
       const el = sectionRefs.current.get(ymd);
       const wrap = stripWrapRef.current;
       if (!el) return;
-      // Land the day header just below the sticky strip rather than under it.
-      const offset = (wrap?.getBoundingClientRect().height ?? 0) + 8;
+      // Land the day header just below where the strip pins, not underneath it.
+      const offset = APP_HEADER_PX + (wrap?.offsetHeight ?? 0) + 8;
       const top = window.scrollY + el.getBoundingClientRect().top - offset;
       window.scrollTo({ top, behavior: "smooth" });
     },
@@ -296,7 +299,8 @@ export function RunsheetApp({
       {/* Day strip — pure client state, no navigation. */}
       <div
         ref={stripWrapRef}
-        className="no-print sticky top-0 z-10 border-b border-rs-border bg-rs-surface/95 px-3 py-2 backdrop-blur"
+        className="no-print sticky z-10 border-b border-rs-border bg-rs-surface/95 px-3 py-2 backdrop-blur"
+        style={{ top: APP_HEADER_PX }}
       >
         <div className="-mx-1 flex justify-center px-1">
           <div
@@ -353,7 +357,7 @@ export function RunsheetApp({
       </div>
 
       {tab === "list" ? (
-        <div className="flex-1 bg-rs-surface px-[15px] pb-4 pt-3">
+        <div className="flex-1 bg-rs-surface px-[15px] pb-4 pt-3 sm:rounded-b-[24px]">
           {days.map((d) => {
             const rows = slotsByYmd[d.ymd] ?? [];
             const dt = DateTime.fromISO(d.ymd, { zone: tz });
@@ -374,7 +378,7 @@ export function RunsheetApp({
                 ref={(node) => {
                   sectionRefs.current.set(d.ymd, node);
                 }}
-                className="mb-7 scroll-mt-28 print-break"
+                className="mb-7 scroll-mt-32 print-break"
               >
                 <div className="mb-2 flex items-baseline justify-between gap-2 border-b border-rs-border pb-1.5">
                   <div className="min-w-0">
@@ -520,7 +524,7 @@ export function RunsheetApp({
           })}
         </div>
       ) : (
-        <div className="flex-1 bg-rs-surface px-2 pb-4 pt-3">
+        <div className="flex-1 bg-rs-surface px-2 pb-4 pt-3 sm:rounded-b-[24px]">
           <div className="no-print mx-1 mb-3 flex gap-1 rounded-[10px] bg-rs-fill p-1" role="tablist">
             <button
               type="button"

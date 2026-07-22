@@ -104,7 +104,9 @@ export async function RunsheetView({
       className="print-root flex min-h-dvh justify-center bg-rs-page p-0 pb-28 font-sans text-rs-text antialiased sm:p-2.5"
       data-print-title={runsheet.title}
     >
-      <div className="relative flex w-full max-w-[450px] flex-col overflow-hidden rounded-none border-0 bg-rs-surface sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
+      {/* No overflow-hidden here: it would clip the rounded corners, but it also kills
+          position:sticky on the day strip inside. The hero rounds its own top corners. */}
+      <div className="relative flex w-full max-w-[450px] flex-col rounded-none border-0 bg-rs-surface sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
         <TripHeroImage src={runsheet.hero_image_url} alt={`${runsheet.title} hero`} />
         <div className="no-print absolute right-3 top-3 z-20">
           <RunsheetMoreMenu id={id} />
