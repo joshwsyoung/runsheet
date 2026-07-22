@@ -381,6 +381,7 @@ export default async function ActivityPage({
                 to={s.to_location}
                 single={s.location_name}
                 accent={meta.border}
+                activityType={s.activity_type}
               />
 
               <Section
@@ -521,13 +522,13 @@ export default async function ActivityPage({
                 {prev ? (
                   <Link
                     href={`/runsheet/${runsheetId}/activity/${prev.id}`}
-                    className="flex min-h-16 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 no-underline"
+                    className="flex min-h-14 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 no-underline"
                   >
                     <span className="flex items-center gap-1 text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
                       <ChevronLeft className="h-3 w-3" aria-hidden />
                       Before
                     </span>
-                    <span className="mt-0.5 line-clamp-2 text-[0.78rem] font-bold leading-snug text-rs-text">
+                    <span className="mt-0.5 truncate text-[0.58rem] font-normal leading-tight text-rs-label">
                       {prev.title ?? "Untitled"}
                     </span>
                   </Link>
@@ -539,13 +540,13 @@ export default async function ActivityPage({
                 {next ? (
                   <Link
                     href={`/runsheet/${runsheetId}/activity/${next.id}`}
-                    className="flex min-h-16 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 text-right no-underline"
+                    className="flex min-h-14 flex-col justify-center rounded-[14px] border border-rs-border bg-rs-surface px-3 py-2 text-right no-underline"
                   >
                     <span className="flex items-center justify-end gap-1 text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
                       Next
                       <ChevronRight className="h-3 w-3" aria-hidden />
                     </span>
-                    <span className="mt-0.5 line-clamp-2 text-[0.78rem] font-bold leading-snug text-rs-text">
+                    <span className="mt-0.5 truncate text-[0.58rem] font-normal leading-tight text-rs-label">
                       {next.title ?? "Untitled"}
                     </span>
                   </Link>

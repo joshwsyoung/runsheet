@@ -1,134 +1,82 @@
-"use client";
+import { SlotMapLeaflet } from "@/components/slot-map-leaflet";
+import { normalizeActivityType } from "@/lib/activity-types";
 
-import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap } from "leaflet";
-import "leaflet/dist/leaflet.css";
+/**
+ * Map for a slot.
+ *
+ * Prefers the Google Maps Embed API, which is free with unlimited requests and — the
+ * reason it wins here — takes free-text place names directly. No geocoding step, so
+ * places OpenStreetMap has never heard of still resolve, and a two-place journey gets
+ * a real routed line rather than a straight hop.
+ *
+ * The key necessarily appears in the iframe URL; that is how the Embed API works. It
+ * must be restricted by HTTP referrer and to the Maps Embed API in Google Cloud.
+ *
+ * With no key configured this falls back to the Leaflet + OpenStreetMap map, so the
+ * app still shows something useful.
+ */
 
-type Point = { lat: number; lng: number; label: string };
-
-async function geocode(q: string): Promise<Point | null> {
-  try {
-    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.found ? { lat: data.lat, lng: data.lng, label: data.label } : null;
-  } catch {
-    return null;
+/** Google Embed directions travel mode, per activity type. */
+function travelMode(activityType: string | null | undefined): string {
+  switch (normalizeActivityType(activityType)) {
+    case "flight":
+      return "flying";
+    case "boat":
+      return "transit";
+    case "taxi":
+    case "driving":
+    case "rental_car":
+      return "driving";
+    default:
+      return "driving";
   }
 }
 
-/**
- * A small Leaflet map for a slot.
- *
- * Two places (a taxi, a drive, a flight) get both pins and a line between them; one
- * place gets a single pin. The line is a direct great-circle-ish hop, not a driving
- * route — drawing a real route needs a routing service, and pretending a straight line
- * is your road route would be misleading.
- *
- * Leaflet is loaded on demand so it stays out of the main bundle, and markers are
- * divIcons so there are no missing marker-image assets to chase.
- */
 export function SlotMap({
   from,
   to,
   single,
   accent,
+  activityType,
 }: {
   from?: string | null;
   to?: string | null;
   single?: string | null;
   accent: string;
+  activityType?: string | null;
 }) {
-  const holder = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
+  const key = process.env.GOOGLE_MAPS_API_KEY?.trim();
 
-  useEffect(() => {
-    let cancelled = false;
+  const origin = from?.trim();
+  const destination = to?.trim();
+  const place = single?.trim() || destination || origin;
+  const isRoute = Boolean(origin && destination);
 
-    (async () => {
-      const isRoute = Boolean(from && to);
-      const queries = isRoute ? [from!, to!] : [single || from || to || ""];
-      if (!queries[0]) {
-        setState("empty");
-        return;
-      }
+  if (!key) {
+    return (
+      <SlotMapLeaflet from={from} to={to} single={single} accent={accent} />
+    );
+  }
+  if (!isRoute && !place) return null;
 
-      const [L, ...points] = await Promise.all([
-        import("leaflet").then((m) => m.default ?? m),
-        ...queries.map((q) => geocode(q)),
-      ]);
-      if (cancelled) return;
-
-      const found = points.filter((p): p is Point => Boolean(p));
-      if (found.length === 0 || !holder.current) {
-        setState("empty");
-        return;
-      }
-
-      mapRef.current?.remove();
-      const map = L.map(holder.current, {
-        scrollWheelZoom: false,
-        attributionControl: true,
-      });
-      mapRef.current = map;
-
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      const pin = (color: string) =>
-        L.divIcon({
-          className: "",
-          html: `<span style="display:block;width:14px;height:14px;border-radius:9999px;background:${color};box-shadow:0 0 0 3px rgba(255,255,255,.9),0 1px 4px rgba(0,0,0,.4)"></span>`,
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        });
-
-      found.forEach((p, i) => {
-        L.marker([p.lat, p.lng], {
-          icon: pin(found.length > 1 && i === 0 ? "#95a5a6" : accent),
-        })
-          .addTo(map)
-          .bindPopup(p.label);
-      });
-
-      if (found.length > 1) {
-        L.polyline(
-          found.map((p) => [p.lat, p.lng] as [number, number]),
-          { color: accent, weight: 3, opacity: 0.75, dashArray: "6 6" },
-        ).addTo(map);
-        map.fitBounds(
-          L.latLngBounds(found.map((p) => [p.lat, p.lng] as [number, number])),
-          { padding: [28, 28] },
-        );
-      } else {
-        map.setView([found[0]!.lat, found[0]!.lng], 14);
-      }
-
-      // The container is sized by CSS after mount; Leaflet needs telling.
-      setTimeout(() => map.invalidateSize(), 0);
-      setState("ready");
-    })();
-
-    return () => {
-      cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, [from, to, single, accent]);
-
-  if (state === "empty") return null;
+  const src = isRoute
+    ? `https://www.google.com/maps/embed/v1/directions?key=${encodeURIComponent(key)}` +
+      `&origin=${encodeURIComponent(origin!)}` +
+      `&destination=${encodeURIComponent(destination!)}` +
+      `&mode=${travelMode(activityType)}`
+    : `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}` +
+      `&q=${encodeURIComponent(place!)}`;
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface">
-      <div ref={holder} className="h-48 w-full bg-rs-fill" />
-      {from && to ? (
-        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
-          Direct line between the two places, not a driving route.
-        </p>
-      ) : null}
+      <iframe
+        title={isRoute ? `Route from ${origin} to ${destination}` : `Map of ${place}`}
+        src={src}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        allowFullScreen
+        className="block h-56 w-full border-0"
+      />
     </section>
   );
 }
