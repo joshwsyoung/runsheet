@@ -30,15 +30,33 @@ async function geocode(q: string): Promise<Point | null> {
  * Leaflet is loaded on demand so it stays out of the main bundle, and markers are
  * divIcons so there are no missing marker-image assets to chase.
  */
+type LatLng = { lat: number; lng: number };
+
+/** A pinned coordinate needs no lookup; otherwise fall back to geocoding the name. */
+async function resolvePoint(
+  coord: LatLng | null | undefined,
+  text: string | null | undefined,
+): Promise<Point | null> {
+  if (coord) return { lat: coord.lat, lng: coord.lng, label: text?.trim() || "Pinned location" };
+  const q = text?.trim();
+  return q ? geocode(q) : null;
+}
+
 export function SlotMapLeaflet({
   from,
   to,
   single,
+  fromCoords,
+  toCoords,
+  singleCoords,
   accent,
 }: {
   from?: string | null;
   to?: string | null;
   single?: string | null;
+  fromCoords?: LatLng | null;
+  toCoords?: LatLng | null;
+  singleCoords?: LatLng | null;
   accent: string;
 }) {
   const holder = useRef<HTMLDivElement | null>(null);
@@ -49,16 +67,15 @@ export function SlotMapLeaflet({
     let cancelled = false;
 
     (async () => {
-      const isRoute = Boolean(from && to);
-      const queries = isRoute ? [from!, to!] : [single || from || to || ""];
-      if (!queries[0]) {
-        setState("empty");
-        return;
-      }
+      const isRoute = Boolean((from || fromCoords) && (to || toCoords));
+      // Each place resolves from its pinned coordinate first, name only as a fallback.
+      const lookups = isRoute
+        ? [resolvePoint(fromCoords, from), resolvePoint(toCoords, to)]
+        : [resolvePoint(singleCoords ?? fromCoords ?? toCoords, single || from || to)];
 
       const [L, ...points] = await Promise.all([
         import("leaflet").then((m) => m.default ?? m),
-        ...queries.map((q) => geocode(q)),
+        ...lookups,
       ]);
       if (cancelled) return;
 
@@ -119,7 +136,21 @@ export function SlotMapLeaflet({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [from, to, single, accent]);
+    // Depend on primitive coordinate values, not the object identities, so a re-render
+    // that rebuilds equal coordinate objects does not needlessly rebuild the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    from,
+    to,
+    single,
+    accent,
+    fromCoords?.lat,
+    fromCoords?.lng,
+    toCoords?.lat,
+    toCoords?.lng,
+    singleCoords?.lat,
+    singleCoords?.lng,
+  ]);
 
   if (state === "empty") return null;
 

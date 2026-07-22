@@ -44,6 +44,11 @@ type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 
 type RowSpec = { label: string; value?: string | null; copyable?: boolean };
 
+/** A pair of nullable coordinates → a point, or null when either half is missing. */
+function latLng(lat: number | null | undefined, lng: number | null | undefined) {
+  return lat != null && lng != null ? { lat, lng } : null;
+}
+
 /** A labelled row. Renders nothing when there is no value — no "—" filler. */
 function Row({ label, value, copyable }: RowSpec) {
   if (!value || !value.trim()) return null;
@@ -262,6 +267,12 @@ export default async function ActivityPage({
                   defaultTitle={s.title}
                   defaultFromLocation={s.from_location}
                   defaultToLocation={s.to_location}
+                  defaultFromLat={s.from_lat}
+                  defaultFromLng={s.from_lng}
+                  defaultToLat={s.to_lat}
+                  defaultToLng={s.to_lng}
+                  defaultLocationLat={s.location_lat}
+                  defaultLocationLng={s.location_lng}
                   defaultFlightNumber={s.flight_number}
                   defaultLocationName={s.location_name}
                   defaultMapUrl={s.map_url}
@@ -380,6 +391,9 @@ export default async function ActivityPage({
                 from={s.from_location}
                 to={s.to_location}
                 single={s.location_name}
+                fromCoords={latLng(s.from_lat, s.from_lng)}
+                toCoords={latLng(s.to_lat, s.to_lng)}
+                singleCoords={latLng(s.location_lat, s.location_lng)}
                 accent={meta.border}
                 activityType={s.activity_type}
               />

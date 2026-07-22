@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ACTIVITY_TYPES, activityMeta, type ActivityType } from "@/lib/activity-types";
+import { LocationSearchField } from "@/components/location-search-field";
 
 type Props = {
   startDateMin: string;
@@ -14,6 +15,12 @@ type Props = {
   defaultTitle?: string | null;
   defaultFromLocation?: string | null;
   defaultToLocation?: string | null;
+  defaultFromLat?: number | null;
+  defaultFromLng?: number | null;
+  defaultToLat?: number | null;
+  defaultToLng?: number | null;
+  defaultLocationLat?: number | null;
+  defaultLocationLng?: number | null;
   defaultFlightNumber?: string | null;
   defaultLocationName?: string | null;
   defaultMapUrl?: string | null;
@@ -31,6 +38,12 @@ export function SlotCoreFields({
   defaultTitle,
   defaultFromLocation,
   defaultToLocation,
+  defaultFromLat,
+  defaultFromLng,
+  defaultToLat,
+  defaultToLng,
+  defaultLocationLat,
+  defaultLocationLng,
   defaultFlightNumber,
   defaultLocationName,
   defaultMapUrl,
@@ -83,30 +96,28 @@ export function SlotCoreFields({
 
       {(activityType === "flight" || activityType === "taxi" || activityType === "driving") && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label>
-            <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
-              From
-            </span>
-            <input
-              name="from_location"
-              defaultValue={defaultFromLocation ?? ""}
-              onChange={(e) => setFromLocation(e.target.value)}
-              placeholder="Origin"
-              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-            />
-          </label>
-          <label>
-            <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
-              To
-            </span>
-            <input
-              name="to_location"
-              defaultValue={defaultToLocation ?? ""}
-              onChange={(e) => setToLocation(e.target.value)}
-              placeholder="Destination"
-              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-            />
-          </label>
+          <LocationSearchField
+            name="from_location"
+            latName="from_lat"
+            lngName="from_lng"
+            label="From"
+            placeholder="Origin"
+            defaultValue={defaultFromLocation}
+            defaultLat={defaultFromLat}
+            defaultLng={defaultFromLng}
+            onValueChange={setFromLocation}
+          />
+          <LocationSearchField
+            name="to_location"
+            latName="to_lat"
+            lngName="to_lng"
+            label="To"
+            placeholder="Destination"
+            defaultValue={defaultToLocation}
+            defaultLat={defaultToLat}
+            defaultLng={defaultToLng}
+            onValueChange={setToLocation}
+          />
         </div>
       )}
 
@@ -214,18 +225,17 @@ export function SlotCoreFields({
         activityType === "lunch" ||
         activityType === "breakfast" ||
         activityType === "activity") && (
-        <label>
-          <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">
-            Location name
-          </span>
-          <input
-            name="location_name"
-            defaultValue={defaultLocationName ?? ""}
-            onChange={(e) => setLocationName(e.target.value)}
-            placeholder="Restaurant, beach, museum..."
-            className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-          />
-        </label>
+        <LocationSearchField
+          name="location_name"
+          latName="location_lat"
+          lngName="location_lng"
+          label="Location name"
+          placeholder="Restaurant, beach, museum..."
+          defaultValue={defaultLocationName}
+          defaultLat={defaultLocationLat}
+          defaultLng={defaultLocationLng}
+          onValueChange={setLocationName}
+        />
       )}
 
       <div>

@@ -23,6 +23,63 @@ function parseJsonStringArray(raw: string): string[] {
     .filter(Boolean);
 }
 
+/** A form-posted coordinate: empty or non-numeric becomes null. */
+function coordFromForm(formData: FormData, field: string): number | null {
+  const raw = String(formData.get(field) ?? "").trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+type SlotCoords = {
+  fromLat: number | null;
+  fromLng: number | null;
+  toLat: number | null;
+  toLng: number | null;
+  locationLat: number | null;
+  locationLng: number | null;
+};
+
+function slotCoordsFromForm(formData: FormData): SlotCoords {
+  return {
+    fromLat: coordFromForm(formData, "from_lat"),
+    fromLng: coordFromForm(formData, "from_lng"),
+    toLat: coordFromForm(formData, "to_lat"),
+    toLng: coordFromForm(formData, "to_lng"),
+    locationLat: coordFromForm(formData, "location_lat"),
+    locationLng: coordFromForm(formData, "location_lng"),
+  };
+}
+
+/**
+ * Best-effort write of the resolved coordinates.
+ *
+ * Kept out of the main insert/update so a slot still saves on a database that has not
+ * yet had the coordinate columns migrated in — the pins are an enhancement, never a
+ * precondition for saving the slot.
+ */
+async function writeSlotCoords(
+  client: RunsheetDb,
+  slotId: string,
+  coords: SlotCoords | undefined,
+) {
+  if (!coords) return;
+  const { error } = await client
+    .from("slots")
+    .update({
+      from_lat: coords.fromLat,
+      from_lng: coords.fromLng,
+      to_lat: coords.toLat,
+      to_lng: coords.toLng,
+      location_lat: coords.locationLat,
+      location_lng: coords.locationLng,
+    })
+    .eq("id", slotId);
+  // A missing-column error just means the migration has not run yet; ignore it so the
+  // slot save is never blocked by an un-applied migration.
+  if (error) return;
+}
+
 function flightMetaFromForm(formData: FormData): Record<string, string> | null {
   const entries: Array<[string, string]> = [
     ["airline", String(formData.get("flight_airline") ?? "").trim()],
@@ -87,6 +144,7 @@ export async function createSlot(input: {
   attachmentUrls?: string[] | null;
   openEnd?: boolean;
   todos?: string[] | SlotTodoItem[];
+  coords?: SlotCoords;
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -139,6 +197,7 @@ export async function createSlot(input: {
 
   const newId = data?.[0]?.id;
   if (error || !newId) return null;
+  await writeSlotCoords(supabase, newId as string, input.coords);
   revalidatePath(`/runsheet/${input.runsheetId}`);
   return newId as string;
 }
@@ -167,6 +226,7 @@ export async function updateSlot(input: {
   attachmentUrls?: string[] | null;
   openEnd?: boolean;
   todos?: string[] | SlotTodoItem[];
+  coords?: SlotCoords;
 }, client?: RunsheetDb) {
   const supabase = client ?? (await createClient());
   const [sh, sm] = input.startHm.split(":").map(Number);
@@ -220,6 +280,8 @@ export async function updateSlot(input: {
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.slotId);
+
+  await writeSlotCoords(supabase, input.slotId, input.coords);
 
   revalidatePath(`/runsheet/${input.runsheetId}`);
   revalidatePath(`/runsheet/${input.runsheetId}/activity/${input.slotId}`);
@@ -285,6 +347,7 @@ export async function updateSlotFromForm(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const todos = mergeSlotTodosFromLines(prevTodos, lines);
+  const coords = slotCoordsFromForm(formData);
 
   await updateSlot({
     runsheetId,
@@ -310,6 +373,7 @@ export async function updateSlotFromForm(formData: FormData) {
     attachmentUrls,
     openEnd,
     todos,
+    coords,
   });
   redirect(`/runsheet/${runsheetId}?day=${startDayYmd}`);
 }
@@ -347,6 +411,7 @@ export async function createSlotFromForm(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const todos = mergeSlotTodosFromLines([], lines);
+  const coords = slotCoordsFromForm(formData);
 
   const id = await createSlot({
     runsheetId,
@@ -371,6 +436,7 @@ export async function createSlotFromForm(formData: FormData) {
     attachmentUrls,
     openEnd,
     todos,
+    coords,
   });
   if (id) {
     redirect(`/runsheet/${runsheetId}/activity/${id}`);

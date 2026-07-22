@@ -200,6 +200,12 @@ export interface Database {
           todos: Json;
           from_location: string | null;
           to_location: string | null;
+          from_lat: number | null;
+          from_lng: number | null;
+          to_lat: number | null;
+          to_lng: number | null;
+          location_lat: number | null;
+          location_lng: number | null;
           flight_number: string | null;
           location_name: string | null;
           map_url: string | null;
@@ -229,6 +235,12 @@ export interface Database {
           todos?: Json;
           from_location?: string | null;
           to_location?: string | null;
+          from_lat?: number | null;
+          from_lng?: number | null;
+          to_lat?: number | null;
+          to_lng?: number | null;
+          location_lat?: number | null;
+          location_lng?: number | null;
           flight_number?: string | null;
           location_name?: string | null;
           map_url?: string | null;
@@ -258,6 +270,12 @@ export interface Database {
           todos?: Json;
           from_location?: string | null;
           to_location?: string | null;
+          from_lat?: number | null;
+          from_lng?: number | null;
+          to_lat?: number | null;
+          to_lng?: number | null;
+          location_lat?: number | null;
+          location_lng?: number | null;
           flight_number?: string | null;
           location_name?: string | null;
           map_url?: string | null;
