@@ -1,11 +1,29 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { DateTime } from "luxon";
+import {
+  Navigation,
+  Ticket,
+  Phone,
+  ExternalLink,
+  Pencil,
+  Check,
+  Square,
+  X,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { activityMeta } from "@/lib/activity-types";
+import { ActivityIcon } from "@/lib/activity-icons";
 import { clampYmdToRange } from "@/lib/dates";
-import { slotHm, bulletsFromRow, slotTodoItemsFromRow, slotSpansNextCalendarDay } from "@/lib/slot-display";
+import {
+  slotHm,
+  bulletsFromRow,
+  slotTodoItemsFromRow,
+  slotSpansNextCalendarDay,
+  slotDurationLabel,
+} from "@/lib/slot-display";
 import { linesFromSlotTodos } from "@/lib/slot-todos";
+import { slotActions, attachmentUrlsOf } from "@/lib/slot-actions";
 import {
   updateSlotFromForm,
   deleteSlotFromForm,
@@ -19,12 +37,54 @@ import type { Database } from "@/lib/database.types";
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
 type DayRow = Database["public"]["Tables"]["runsheet_days"]["Row"];
 
+/** A labelled row. Renders nothing when there is no value — no "—" filler. */
+function Row({ label, value }: { label: string; value?: string | null }) {
+  if (!value || !value.trim()) return null;
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-rs-border py-2 last:border-b-0">
+      <dt className="shrink-0 text-[0.7rem] font-bold uppercase tracking-wide text-rs-label">
+        {label}
+      </dt>
+      <dd className="min-w-0 break-words text-right text-[0.85rem] text-rs-text">{value}</dd>
+    </div>
+  );
+}
+
+/** A card of rows. Renders nothing when every row inside is empty. */
+function Section({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { label: string; value?: string | null }[];
+}) {
+  const populated = rows.filter((r) => r.value && r.value.trim());
+  if (populated.length === 0) return null;
+  return (
+    <section className="rounded-[14px] border border-rs-border bg-rs-surface px-3 py-1">
+      <h2 className="pt-2 text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+        {title}
+      </h2>
+      <dl className="mt-1">
+        {populated.map((r) => (
+          <Row key={r.label} label={r.label} value={r.value} />
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export default async function ActivityPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; slotId: string }>;
+  searchParams: Promise<{ edit?: string }>;
 }) {
   const { id: runsheetId, slotId } = await params;
+  const { edit } = await searchParams;
+  const editing = edit === "1";
+
   const supabase = await createClient();
   const { data: slot } = await supabase.from("slots").select("*").eq("id", slotId).maybeSingle();
   if (!slot) notFound();
@@ -56,208 +116,115 @@ export default async function ActivityPage({
   const localEnd = DateTime.fromISO(s.end_at, { zone: "utc" }).setZone(tz);
   const startDayYmd = localStart.toISODate() ?? dayEditDefault;
   const endDayYmd = localEnd.toISODate() ?? dayEditDefault;
-  const flightMeta = (s.flight_meta && typeof s.flight_meta === "object" && !Array.isArray(s.flight_meta))
-    ? (s.flight_meta as Record<string, string>)
-    : {};
-  const attachmentUrls = Array.isArray(s.attachment_urls)
-    ? s.attachment_urls.filter((u): u is string => typeof u === "string" && Boolean(u))
-    : [];
+  const flightMeta =
+    s.flight_meta && typeof s.flight_meta === "object" && !Array.isArray(s.flight_meta)
+      ? (s.flight_meta as Record<string, string>)
+      : {};
+  const attachments = attachmentUrlsOf(s);
+  const actions = slotActions(s);
+  const backHref = `/runsheet/${runsheetId}?day=${dayYmd}`;
+
+  const airports =
+    flightMeta.departureAirport || flightMeta.arrivalAirport
+      ? `${flightMeta.departureAirport ?? "?"} → ${flightMeta.arrivalAirport ?? "?"}`
+      : null;
+  const terminals =
+    flightMeta.departureTerminal || flightMeta.arrivalTerminal
+      ? `${flightMeta.departureTerminal ?? "?"} → ${flightMeta.arrivalTerminal ?? "?"}`
+      : null;
 
   return (
-    <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-10 print:pb-4 sm:p-2.5">
-      <div className="w-full max-w-[450px] space-y-3 pt-0 sm:pt-3">
-        <header className="flex items-center justify-between">
-          <Link
-            href={`/runsheet/${runsheetId}?day=${dayYmd}`}
-            className="text-sm font-bold text-rs-subtle no-underline hover:text-rs-primary"
-          >
-            ← Close
-          </Link>
-          <div className="flex items-center gap-2">
-            <a
-              href="#edit-slot"
-              className="no-print rounded-lg p-1.5 text-rs-label no-underline hover:bg-rs-muted-surface hover:text-rs-text"
-              aria-label="Edit slot"
-              title="Edit slot"
-            >
-              ⚙
-            </a>
-            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-              Activity
-            </span>
-          </div>
-        </header>
-
-        <div className="overflow-hidden rounded-none border-0 bg-rs-surface shadow-none sm:rounded-[24px] sm:border sm:border-rs-border sm:shadow-[0_10px_40px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_12px_48px_rgba(0,0,0,0.55)]">
-          <div
-            className="h-28 w-full bg-cover bg-center"
-            style={
-              s.preview_image_url
-                ? { backgroundImage: `url(${s.preview_image_url})` }
-                : {
-                    background: `linear-gradient(135deg, ${meta.border}22, var(--color-rs-surface))`,
-                  }
-            }
-          />
-          <div className="space-y-3 px-4 pb-4 pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className="rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white"
-                style={{ backgroundColor: meta.border }}
+    <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-12 sm:p-2.5">
+      <div className="w-full max-w-[450px]">
+        {/* Type band — colour and icon carry the activity type. */}
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{
+            background: `linear-gradient(135deg, ${meta.border}22, var(--color-rs-surface))`,
+          }}
+        >
+          <ActivityIcon type={s.activity_type} className="h-4 w-4" color={meta.border} />
+          <span className="text-[0.68rem] font-bold uppercase tracking-wide text-rs-secondary">
+            {meta.label}
+          </span>
+          <span className="ml-auto">
+            {editing ? (
+              <Link
+                href={`/runsheet/${runsheetId}/activity/${slotId}`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rs-border bg-rs-surface px-3 text-[0.75rem] font-bold text-rs-secondary no-underline"
               >
-                {meta.label}
-              </span>
-              <span className="no-print text-sm text-rs-label">✎ Edit below</span>
-            </div>
-            <h1 className="text-[1.15rem] font-bold leading-snug text-rs-text">
+                <X className="h-3.5 w-3.5" aria-hidden />
+                Cancel
+              </Link>
+            ) : (
+              <Link
+                href={`/runsheet/${runsheetId}/activity/${slotId}?edit=1`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-rs-border bg-rs-surface px-3 text-[0.75rem] font-bold text-rs-secondary no-underline"
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                Edit
+              </Link>
+            )}
+          </span>
+        </div>
+
+        <div className="space-y-3 px-3 pb-6 pt-3">
+          <header>
+            <h1 className="text-[1.2rem] font-bold leading-snug text-rs-text">
               {s.title ?? "Untitled"}
             </h1>
-            <p className="text-[0.85rem] font-bold text-rs-secondary">
-              <span className="font-normal text-rs-label">
-                {DateTime.fromISO(dayYmd, { zone: tz }).toFormat("EEE d MMM")}
-                <span className="px-1">·</span>
+            <p className="mt-1 text-[0.8rem] text-rs-muted">
+              {DateTime.fromISO(dayYmd, { zone: tz }).toFormat("cccc d MMM")}
+              <span className="px-1.5 text-rs-label">·</span>
+              <span className="font-bold tabular-nums text-rs-secondary">
+                {startHm}
+                {s.open_ended ? " → open" : `–${slotHm(s.end_at, tz)}`}
+                {overnight ? " (+1)" : ""}
               </span>
-              {startHm}
-              <span className="px-1 text-rs-label">·</span>
-              {s.open_ended ? "open end" : `${slotHm(s.end_at, tz)}${overnight ? " (next day)" : ""}`}
-            </p>
-
-            {s.link_url ? (
-              <div className="rounded-xl border border-rs-border bg-rs-muted-surface p-3">
-                <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                  Link
-                </p>
-                <a
-                  className="mt-1 block truncate text-sm font-bold text-rs-primary underline"
-                  href={s.link_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {s.preview_title ?? s.link_url}
-                </a>
-                {s.preview_description ? (
-                  <p className="mt-2 text-xs leading-relaxed text-rs-muted">{s.preview_description}</p>
-                ) : null}
-                <div className="no-print mt-2">
-                  <LinkPreviewButton slotId={slotId} />
-                </div>
-              </div>
-            ) : null}
-
-            {s.description ? (
-              <div>
-                <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">About</p>
-                <p className="mt-1 text-sm leading-relaxed text-rs-secondary">{s.description}</p>
-              </div>
-            ) : null}
-
-            {bullets.length ? (
-              <ul className="space-y-1 border-l-2 pl-3 text-sm text-rs-muted" style={{ borderColor: "#4a90e2" }}>
-                {bullets.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="rounded-xl border border-amber-400/35 bg-rs-muted-surface/50 p-3">
-              <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">To-dos</p>
-              {todoItems.length ? (
-                <ul className="mt-2 space-y-2 border-l-2 border-amber-400 pl-3 text-sm">
-                  {todoItems.map((item) => (
-                    <li key={item.id} className="flex items-start gap-2 text-rs-secondary">
-                      <form action={toggleSlotTodoItem} className="no-print inline shrink-0">
-                        <input type="hidden" name="runsheet_id" value={runsheetId} />
-                        <input type="hidden" name="slot_id" value={slotId} />
-                        <input type="hidden" name="todo_id" value={item.id} />
-                        <input type="hidden" name="done" value={item.done ? "false" : "true"} />
-                        <button
-                          type="submit"
-                          className="font-[inherit] leading-none text-rs-muted"
-                          aria-label={item.done ? "Mark not done" : "Mark done"}
-                        >
-                          {item.done ? "☑" : "☐"}
-                        </button>
-                      </form>
-                      <span className={item.done ? "text-rs-label line-through" : ""}>{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-rs-label">None yet — add below or from the trips list.</p>
-              )}
-              <form action={addSlotTodoFromForm} className="no-print mt-3 flex gap-2">
-                <input type="hidden" name="runsheet_id" value={runsheetId} />
-                <input type="hidden" name="slot_id" value={slotId} />
-                <input
-                  name="text"
-                  placeholder="Add a to-do"
-                  className="min-w-0 flex-1 rounded-xl border border-rs-border px-2 py-1.5 text-sm"
-                />
-                <button type="submit" className="rounded-xl bg-rs-primary px-3 py-1.5 text-xs font-bold text-white">
-                  Add
-                </button>
-              </form>
-            </div>
-
-            <dl className="grid grid-cols-[1fr_2fr] gap-x-2 gap-y-2 text-sm">
-              <dt className="font-bold text-rs-label">From</dt>
-              <dd className="text-rs-text">{s.from_location ?? "—"}</dd>
-              <dt className="font-bold text-rs-label">To</dt>
-              <dd className="text-rs-text">{s.to_location ?? "—"}</dd>
-              <dt className="font-bold text-rs-label">Flight no.</dt>
-              <dd className="text-rs-text">{s.flight_number ?? "—"}</dd>
-              <dt className="font-bold text-rs-label">Booking</dt>
-              <dd className="text-rs-text">{s.booking_ref ?? "—"}</dd>
-              <dt className="font-bold text-rs-label">Contact</dt>
-              <dd className="text-rs-text">{s.contact_info ?? "—"}</dd>
-              {s.activity_type === "flight" ? (
+              {s.open_ended ? null : (
                 <>
-                  <dt className="font-bold text-rs-label">Airline</dt>
-                  <dd className="text-rs-text">{flightMeta.airline ?? "—"}</dd>
-                  <dt className="font-bold text-rs-label">Airport route</dt>
-                  <dd className="text-rs-text">
-                    {(flightMeta.departureAirport || "—") + " → " + (flightMeta.arrivalAirport || "—")}
-                  </dd>
-                  <dt className="font-bold text-rs-label">Terminal</dt>
-                  <dd className="text-rs-text">
-                    {(flightMeta.departureTerminal || "—") + " → " + (flightMeta.arrivalTerminal || "—")}
-                  </dd>
-                  <dt className="font-bold text-rs-label">Seat / Gate</dt>
-                  <dd className="text-rs-text">
-                    {(flightMeta.seat || "—") + " / " + (flightMeta.gate || "—")}
-                  </dd>
+                  <span className="px-1.5 text-rs-label">·</span>
+                  {slotDurationLabel(s.start_at, s.end_at, tz, s.open_ended)}
                 </>
-              ) : null}
-            </dl>
-            {attachmentUrls.length ? (
-              <div>
-                <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">Passes / QR links</p>
-                <ul className="mt-1 space-y-1 text-sm">
-                  {attachmentUrls.map((url) => (
-                    <li key={url}>
-                      <a href={url} target="_blank" rel="noreferrer" className="text-rs-primary underline break-all">
-                        {url}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+              )}
+            </p>
+          </header>
 
-            {s.map_url ? (
-              <a
-                href={s.map_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex rounded-xl border border-rs-border bg-rs-muted-surface px-3 py-2 text-sm font-bold text-rs-primary no-underline"
+          {!editing && actions.length ? (
+            <div className="grid grid-cols-2 gap-2">
+              {actions.map((a) => {
+                const Icon =
+                  a.kind === "directions"
+                    ? Navigation
+                    : a.kind === "ticket"
+                      ? Ticket
+                      : a.kind === "call"
+                        ? Phone
+                        : ExternalLink;
+                const cls =
+                  "flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-rs-border bg-rs-surface text-[0.8rem] font-bold text-rs-primary no-underline";
+                if (!a.href) return null;
+                return a.external ? (
+                  <a key={a.kind} href={a.href} target="_blank" rel="noreferrer" className={cls}>
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {a.label}
+                  </a>
+                ) : (
+                  <a key={a.kind} href={a.href} className={cls}>
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {a.label}
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {editing ? (
+            <>
+              <form
+                action={updateSlotFromForm}
+                className="space-y-3 rounded-[14px] border border-rs-border bg-rs-surface p-3"
               >
-                Open map
-              </a>
-            ) : null}
-
-            <details id="edit-slot" className="no-print rounded-xl border border-rs-border bg-rs-muted-surface p-3">
-              <summary className="cursor-pointer text-sm font-bold text-rs-text">Adjust…</summary>
-              <form action={updateSlotFromForm} className="mt-3 space-y-3">
                 <input type="hidden" name="runsheet_id" value={runsheetId} />
                 <input type="hidden" name="slot_id" value={slotId} />
                 <input type="hidden" name="timezone" value={tz} />
@@ -281,101 +248,251 @@ export default async function ActivityPage({
                   <input type="checkbox" name="open_end" defaultChecked={s.open_ended} />
                   Open end
                 </label>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    About
-                  </label>
-                  <textarea
-                    name="description"
-                    rows={3}
-                    defaultValue={s.description ?? ""}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    To-dos (one per line)
-                  </label>
-                  <textarea
-                    name="todos"
-                    rows={3}
-                    defaultValue={linesFromSlotTodos(todoItems)}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Bullets (one per line)
-                  </label>
-                  <textarea
-                    name="bullets"
-                    rows={3}
-                    defaultValue={bullets.join("\n")}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Link
-                  </label>
-                  <input
-                    name="link_url"
-                    type="url"
-                    defaultValue={s.link_url ?? ""}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Booking ref
-                  </label>
-                  <input
-                    name="booking_ref"
-                    defaultValue={s.booking_ref ?? ""}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Contact
-                  </label>
-                  <input
-                    name="contact_info"
-                    defaultValue={s.contact_info ?? ""}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Boarding passes / QR links (one per line)
-                  </label>
-                  <textarea
-                    name="attachment_urls"
-                    rows={3}
-                    defaultValue={attachmentUrls.join("\n")}
-                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-                  />
-                </div>
+                {[
+                  { name: "description", label: "About", rows: 3, value: s.description ?? "" },
+                  {
+                    name: "todos",
+                    label: "To-dos (one per line)",
+                    rows: 3,
+                    value: linesFromSlotTodos(todoItems),
+                  },
+                  {
+                    name: "bullets",
+                    label: "Bullets (one per line)",
+                    rows: 3,
+                    value: bullets.join("\n"),
+                  },
+                  {
+                    name: "attachment_urls",
+                    label: "Passes / QR links (one per line)",
+                    rows: 2,
+                    value: attachments.join("\n"),
+                  },
+                ].map((f) => (
+                  <div key={f.name}>
+                    <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                      {f.label}
+                    </label>
+                    <textarea
+                      name={f.name}
+                      rows={f.rows}
+                      defaultValue={f.value}
+                      className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                    />
+                  </div>
+                ))}
+                {[
+                  { name: "link_url", label: "Link", value: s.link_url ?? "", type: "url" },
+                  {
+                    name: "booking_ref",
+                    label: "Booking ref",
+                    value: s.booking_ref ?? "",
+                    type: "text",
+                  },
+                  {
+                    name: "contact_info",
+                    label: "Contact",
+                    value: s.contact_info ?? "",
+                    type: "text",
+                  },
+                ].map((f) => (
+                  <div key={f.name}>
+                    <label className="mb-1 block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                      {f.label}
+                    </label>
+                    <input
+                      name={f.name}
+                      type={f.type}
+                      defaultValue={f.value}
+                      className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                    />
+                  </div>
+                ))}
                 <button
                   type="submit"
                   className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
                 >
-                  Save
+                  Save changes
                 </button>
               </form>
-            </details>
 
-            <form action={deleteSlotFromForm} className="no-print pt-2">
-              <input type="hidden" name="runsheet_id" value={runsheetId} />
-              <input type="hidden" name="slot_id" value={slotId} />
-              <button
-                type="submit"
-                className="rs-btn rs-btn-danger w-full"
+              <form action={deleteSlotFromForm}>
+                <input type="hidden" name="runsheet_id" value={runsheetId} />
+                <input type="hidden" name="slot_id" value={slotId} />
+                <button type="submit" className="rs-btn rs-btn-danger w-full">
+                  Delete this slot
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              {s.description || bullets.length ? (
+                <section className="rounded-[14px] border border-rs-border bg-rs-surface p-3">
+                  {s.description ? (
+                    <>
+                      <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                        About
+                      </h2>
+                      <p className="mt-1.5 text-[0.85rem] leading-relaxed text-rs-secondary">
+                        {s.description}
+                      </p>
+                    </>
+                  ) : null}
+                  {bullets.length ? (
+                    <ul
+                      className={`space-y-1 border-l-2 pl-3 text-[0.82rem] leading-relaxed text-rs-muted ${
+                        s.description ? "mt-2.5" : ""
+                      }`}
+                      style={{ borderColor: meta.border }}
+                    >
+                      {bullets.map((b) => (
+                        <li key={b}>{b}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+              ) : null}
+
+              <Section
+                title="Journey"
+                rows={[
+                  { label: "From", value: s.from_location },
+                  { label: "To", value: s.to_location },
+                  { label: "Flight", value: s.flight_number },
+                  { label: "Place", value: s.location_name },
+                ]}
+              />
+
+              <Section
+                title="Flight details"
+                rows={
+                  s.activity_type === "flight"
+                    ? [
+                        { label: "Airline", value: flightMeta.airline },
+                        { label: "Airports", value: airports },
+                        { label: "Terminals", value: terminals },
+                        { label: "Seat", value: flightMeta.seat },
+                        { label: "Gate", value: flightMeta.gate },
+                        { label: "Boarding", value: flightMeta.boardingTime },
+                      ]
+                    : []
+                }
+              />
+
+              <Section
+                title="Booking"
+                rows={[
+                  { label: "Reference", value: s.booking_ref },
+                  { label: "Contact", value: s.contact_info },
+                ]}
+              />
+
+              <section className="rounded-[14px] border border-rs-border bg-rs-surface p-3">
+                <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                  To-dos
+                </h2>
+                {todoItems.length ? (
+                  <ul className="mt-2 space-y-2 text-[0.85rem]">
+                    {todoItems.map((item) => (
+                      <li key={item.id} className="flex items-start gap-2 text-rs-secondary">
+                        <form action={toggleSlotTodoItem} className="inline shrink-0">
+                          <input type="hidden" name="runsheet_id" value={runsheetId} />
+                          <input type="hidden" name="slot_id" value={slotId} />
+                          <input type="hidden" name="todo_id" value={item.id} />
+                          <input type="hidden" name="done" value={item.done ? "false" : "true"} />
+                          <button
+                            type="submit"
+                            className="mt-0.5 text-rs-muted"
+                            aria-label={item.done ? "Mark not done" : "Mark done"}
+                          >
+                            {item.done ? (
+                              <Check className="h-4 w-4" aria-hidden />
+                            ) : (
+                              <Square className="h-4 w-4" aria-hidden />
+                            )}
+                          </button>
+                        </form>
+                        <span className={item.done ? "text-rs-label line-through" : ""}>
+                          {item.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1.5 text-[0.8rem] text-rs-label">Nothing to do.</p>
+                )}
+                <form action={addSlotTodoFromForm} className="mt-3 flex gap-2">
+                  <input type="hidden" name="runsheet_id" value={runsheetId} />
+                  <input type="hidden" name="slot_id" value={slotId} />
+                  <input
+                    name="text"
+                    placeholder="Add a to-do"
+                    className="min-w-0 flex-1 rounded-xl border border-rs-border px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-rs-primary px-3 py-1.5 text-xs font-bold text-white"
+                  >
+                    Add
+                  </button>
+                </form>
+              </section>
+
+              {attachments.length ? (
+                <section className="rounded-[14px] border border-rs-border bg-rs-surface p-3">
+                  <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                    Passes
+                  </h2>
+                  <ul className="mt-2 space-y-1.5 text-[0.82rem]">
+                    {attachments.map((url) => (
+                      <li key={url}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 break-all text-rs-primary underline"
+                        >
+                          <Ticket className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          {url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
+              {s.link_url ? (
+                <section className="rounded-[14px] border border-rs-border bg-rs-surface p-3">
+                  <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                    Link
+                  </h2>
+                  <a
+                    className="mt-1.5 block truncate text-[0.85rem] font-bold text-rs-primary underline"
+                    href={s.link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {s.preview_title ?? s.link_url}
+                  </a>
+                  {s.preview_description ? (
+                    <p className="mt-1.5 text-[0.8rem] leading-relaxed text-rs-muted">
+                      {s.preview_description}
+                    </p>
+                  ) : null}
+                  <div className="mt-2">
+                    <LinkPreviewButton slotId={slotId} />
+                  </div>
+                </section>
+              ) : null}
+
+              <Link
+                href={backHref}
+                className="block rounded-xl border border-rs-border bg-rs-surface py-2.5 text-center text-[0.8rem] font-bold text-rs-secondary no-underline"
               >
-                Delete slot
-              </button>
-            </form>
-          </div>
+                Back to the day
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -6,11 +6,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import {
   Plus,
   Lightbulb,
-  MapPin,
   AlertTriangle,
   Check,
   Square,
+  Navigation,
+  Ticket,
+  Phone,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { slotActions } from "@/lib/slot-actions";
 import { activityMeta } from "@/lib/activity-types";
 import { ActivityIcon } from "@/lib/activity-icons";
 import {
@@ -20,9 +26,7 @@ import {
   normalizeDayStatus,
   LIGHT_DAY_SLOT_BUDGET,
 } from "@/lib/day-status";
-import { placeLink } from "@/lib/places";
 import {
-  bulletsFromRow,
   slotHm,
   slotHourGridPlacement,
   slotSpansNextCalendarDay,
@@ -207,6 +211,38 @@ export function RunsheetApp({
     if (tab === "list") return;
     panStripTo(focusYmd, true);
   }, [tab, focusYmd, panStripTo]);
+
+  const dayIndex = days.findIndex((d) => d.ymd === focusYmd);
+
+  /** Move the schedule a day at a time, clamped to the trip. */
+  const stepDay = useCallback(
+    (delta: number) => {
+      const next = days[dayIndex + delta];
+      if (next) setFocusYmd(next.ymd);
+    },
+    [days, dayIndex],
+  );
+
+  // Horizontal swipe changes day in the schedule. Vertical intent is left alone so the
+  // grid still scrolls: only act when the gesture is clearly sideways.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onDayTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = t ? { x: t.clientX, y: t.clientY } : null;
+  }, []);
+  const onDayTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const start = touchStart.current;
+      touchStart.current = null;
+      const t = e.changedTouches[0];
+      if (!start || !t) return;
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      stepDay(dx < 0 ? 1 : -1);
+    },
+    [stepDay],
+  );
 
   const jumpToDay = useCallback(
     (ymd: string) => {
@@ -547,12 +583,36 @@ export function RunsheetApp({
           </div>
 
           {scheduleView === "hours" ? (
-            <div>
-              <p className="mb-2 px-1 text-center text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                {DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM")} · by hour
-              </p>
+            <div
+              onTouchStart={onDayTouchStart}
+              onTouchEnd={onDayTouchEnd}
+              className="touch-pan-y"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => stepDay(-1)}
+                  disabled={dayIndex <= 0}
+                  aria-label="Previous day"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rs-label disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                </button>
+                <p className="text-center text-[0.7rem] font-bold uppercase tracking-wide text-rs-label">
+                  {DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => stepDay(1)}
+                  disabled={dayIndex >= days.length - 1}
+                  aria-label="Next day"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rs-label disabled:opacity-30"
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
               <div
-                className="mx-auto grid max-w-full grid-cols-[2.75rem_1fr] overflow-hidden rounded-xl border border-rs-border"
+                className="mx-auto grid max-w-full grid-cols-[2.25rem_1fr] overflow-hidden rounded-xl border border-rs-border"
                 style={{ minHeight: HOURS.length * HOUR_PX }}
               >
                 <div className="bg-rs-muted-surface py-1 pr-0.5">
@@ -580,6 +640,9 @@ export function RunsheetApp({
                     const endLabel = slot.open_ended
                       ? "open"
                       : `${slotHm(slot.end_at, tz)}${crossesMidnight ? "+" : ""}`;
+                    // A 30-minute block is only ~24px tall — two stacked lines collide.
+                    // Below the threshold, time and title share one truncated row.
+                    const compact = height < 38;
                     return (
                       <Link
                         key={slot.id}
@@ -588,12 +651,25 @@ export function RunsheetApp({
                         className="rs-slot absolute text-inherit no-underline"
                         style={{ top, height, borderColor: meta.border }}
                       >
-                        <span className="block truncate text-rs-text">
-                          {slotHm(slot.start_at, tz)}–{endLabel}
-                        </span>
-                        <span className="block truncate text-[0.65rem] font-bold text-rs-muted">
-                          {slot.title}
-                        </span>
+                        {compact ? (
+                          <span className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
+                            <span className="shrink-0 text-[0.55rem] tabular-nums text-rs-label">
+                              {slotHm(slot.start_at, tz)}
+                            </span>
+                            <span className="truncate text-[0.62rem] text-rs-text">
+                              {slot.title}
+                            </span>
+                          </span>
+                        ) : (
+                          <>
+                            <span className="block truncate text-[0.55rem] tabular-nums text-rs-label">
+                              {slotHm(slot.start_at, tz)}–{endLabel}
+                            </span>
+                            <span className="block truncate text-[0.65rem] text-rs-text">
+                              {slot.title}
+                            </span>
+                          </>
+                        )}
                       </Link>
                     );
                   })}
@@ -711,74 +787,98 @@ function SlotCard({
   ) => void;
 }) {
   const meta = activityMeta(slot.activity_type);
-  const bullets = bulletsFromRow(slot);
   const todos = slotTodoItemsFromRow(slot);
-  const map = placeLink(slot.map_url, slot.location_name);
+  const actions = slotActions(slot);
+  const detailHref = `/runsheet/${runsheetId}/activity/${slot.id}`;
+  const endLabel = slot.open_ended ? "open" : slotHm(slot.end_at, tz);
 
   return (
     <div className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
       <Link
-        href={`/runsheet/${runsheetId}/activity/${slot.id}`}
+        href={detailHref}
         prefetch={false}
-        className="block w-full p-3 text-left text-inherit no-underline"
+        className="block w-full text-left text-inherit no-underline"
       >
-        <div className="flex items-start gap-3">
-          <div className="rs-date-badge flex min-w-[4.5rem] flex-col gap-0.5 py-2">
-            <span className="tabular-nums">{slotHm(slot.start_at, tz)}</span>
-            <ActivityIcon
-              type={slot.activity_type}
-              className="mx-auto h-3.5 w-3.5"
-              color={meta.border}
-            />
-            <span className="tabular-nums">
-              {slot.open_ended ? (
-                <span className="text-[0.7rem] font-bold text-rs-label">open</span>
-              ) : (
-                slotHm(slot.end_at, tz)
-              )}
+        <div
+          className="border-l-[4px] p-3"
+          style={{
+            borderColor: meta.border,
+            background: `linear-gradient(90deg,${meta.tint} 0%,var(--color-rs-surface) 14%)`,
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <ActivityIcon
+                  type={slot.activity_type}
+                  className="h-3.5 w-3.5 shrink-0"
+                  color={meta.border}
+                />
+                <span className="text-[0.6rem] font-bold uppercase tracking-wide text-rs-label">
+                  {meta.label}
+                </span>
+              </div>
+              {/* Full title — no longer competing with a big time badge for width. */}
+              <p className="mt-1 text-[0.95rem] font-bold leading-snug">
+                {slot.title ?? "Untitled"}
+              </p>
+              {slot.description ? (
+                <p className="mt-1 line-clamp-2 text-[0.78rem] leading-snug text-rs-muted">
+                  {slot.description}
+                </p>
+              ) : null}
+            </div>
+            {/* Time as a footnote in the corner rather than a column of its own. */}
+            <span className="shrink-0 pt-0.5 text-right text-[0.65rem] font-bold leading-tight tabular-nums text-rs-label">
+              {slotHm(slot.start_at, tz)}
+              <br />
+              {endLabel}
             </span>
           </div>
-          <div
-            className="min-w-0 flex-1 border-l-[4px] pl-3"
-            style={{
-              borderColor: meta.border,
-              background: `linear-gradient(90deg,${meta.tint} 0%,var(--color-rs-surface) 12%)`,
-            }}
-          >
-            <p className="text-[0.9rem] font-bold leading-snug">{slot.title ?? "Untitled"}</p>
-            {slot.description ? (
-              <p className="mt-1 text-[0.8rem] text-rs-muted">{slot.description}</p>
-            ) : null}
-            {bullets.length ? (
-              <ul
-                className="mt-2 space-y-1 border-l-2 pl-3 text-[0.78rem] leading-relaxed text-rs-muted"
-                style={{ borderColor: "var(--color-rs-primary)" }}
-              >
-                {bullets.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          {slot.preview_image_url ? (
-            <div
-              className="h-12 w-12 shrink-0 rounded-lg bg-rs-fill bg-cover bg-center"
-              style={{ backgroundImage: `url(${slot.preview_image_url})` }}
-            />
-          ) : null}
         </div>
       </Link>
 
-      {map ? (
-        <a
-          href={map}
-          target="_blank"
-          rel="noreferrer"
-          className="no-print flex min-h-11 items-center gap-1.5 border-t border-rs-border px-3 py-2 text-[0.75rem] font-bold text-rs-primary no-underline"
-        >
-          <MapPin className="h-3.5 w-3.5" aria-hidden />
-          {slot.location_name ?? "Open in Maps"}
-        </a>
+      {actions.length ? (
+        <div className="no-print flex items-stretch border-t border-rs-border">
+          {actions.map((a) => {
+            const cls =
+              "flex min-h-11 flex-1 items-center justify-center gap-1.5 text-[0.72rem] font-bold text-rs-primary no-underline";
+            const Icon =
+              a.kind === "directions"
+                ? Navigation
+                : a.kind === "ticket"
+                  ? Ticket
+                  : a.kind === "call"
+                    ? Phone
+                    : ExternalLink;
+            const body = (
+              <>
+                <Icon className="h-3.5 w-3.5" aria-hidden />
+                {a.label}
+              </>
+            );
+            return a.external ? (
+              <a
+                key={a.kind}
+                href={a.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`${cls} border-r border-rs-border last:border-r-0`}
+              >
+                {body}
+              </a>
+            ) : (
+              <Link
+                key={a.kind}
+                href={a.href || detailHref}
+                prefetch={false}
+                className={`${cls} border-r border-rs-border last:border-r-0`}
+              >
+                {body}
+              </Link>
+            );
+          })}
+        </div>
       ) : null}
 
       {todos.length ? (
