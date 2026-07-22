@@ -101,7 +101,9 @@ export function RunsheetApp({
   const [extraChecks, setExtraChecks] = useState<CheckRow[]>([]);
 
   const chipRefs = useRef<Map<string, HTMLElement | null>>(new Map());
-  const suppressObserver = useRef(false);
+  const sectionRefs = useRef<Map<string, HTMLElement | null>>(new Map());
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const stripWrapRef = useRef<HTMLDivElement | null>(null);
 
   const slotsByYmd = useMemo(() => {
     const byId = new Map(days.map((d) => [d.id, d.ymd]));
@@ -133,48 +135,90 @@ export function RunsheetApp({
     window.history.replaceState(null, "", `?${p.toString()}`);
   }, [focusYmd, tab, scheduleView]);
 
-  // Centre the active chip in the strip.
-  useEffect(() => {
-    chipRefs.current
-      .get(focusYmd)
-      ?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [focusYmd]);
-
-  // In list mode the strip reflects whichever day card is at the top of the viewport.
-  useEffect(() => {
-    if (tab !== "list" || typeof IntersectionObserver === "undefined") return;
-    const sections = days
-      .map((d) => document.getElementById(`day-${d.ymd}`))
-      .filter((el): el is HTMLElement => Boolean(el));
-    if (!sections.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (suppressObserver.current) return;
-        const top = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (top?.target.id) setFocusYmd(top.target.id.replace(/^day-/, ""));
-      },
-      { rootMargin: "-104px 0px -60% 0px", threshold: 0 },
+  /**
+   * Pan the day strip horizontally to centre a chip.
+   *
+   * Sets scrollLeft on the strip directly rather than calling scrollIntoView: that
+   * scrolls *every* scrollable ancestor including the window, so tracking the page
+   * scroll with it yanked the page back up as you scrolled. This can only ever move
+   * the strip sideways.
+   */
+  const panStripTo = useCallback((ymd: string, smooth: boolean) => {
+    const strip = stripRef.current;
+    const chip = chipRefs.current.get(ymd);
+    if (!strip || !chip) return;
+    const target = Math.max(
+      0,
+      Math.min(
+        chip.offsetLeft - (strip.clientWidth - chip.clientWidth) / 2,
+        strip.scrollWidth - strip.clientWidth,
+      ),
     );
-    sections.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [tab, days]);
+    if (smooth) strip.scrollTo({ left: target, behavior: "smooth" });
+    else strip.scrollLeft = target;
+  }, []);
+
+  /**
+   * The strip is a position indicator: as the page scrolls, whichever day is crossing
+   * the line just under the strip becomes the active one, and the strip pans to match.
+   * Updated per animation frame so a fast scroll pans smoothly rather than jumping.
+   */
+  useEffect(() => {
+    if (tab !== "list") return;
+
+    const update = () => {
+      const wrap = stripWrapRef.current;
+      // The line sits just below the sticky strip — the first thing the user can read.
+      const lineY = (wrap?.getBoundingClientRect().bottom ?? 0) + 12;
+
+      let active: string | null = null;
+      for (const d of days) {
+        const el = sectionRefs.current.get(d.ymd);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= lineY) active = d.ymd;
+        else break;
+      }
+      // Above the first day header, keep the first day selected.
+      if (!active && days.length) active = days[0]!.ymd;
+
+      if (active) {
+        setFocusYmd((prev) => (prev === active ? prev : active!));
+        panStripTo(active, false);
+      }
+    };
+
+    // Run straight off the scroll event rather than scheduling a frame. Browsers already
+    // coalesce scroll to roughly one event per frame, and a rAF gate silently latches
+    // when frames stop being served (backgrounded tab), leaving the strip stuck.
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [tab, days, panStripTo]);
+
+  // In schedule mode nothing is scrolling, so centre the chip on selection.
+  useEffect(() => {
+    if (tab === "list") return;
+    panStripTo(focusYmd, true);
+  }, [tab, focusYmd, panStripTo]);
 
   const jumpToDay = useCallback(
     (ymd: string) => {
       setFocusYmd(ymd);
+      panStripTo(ymd, true);
       if (tab !== "list") return;
-      const el = document.getElementById(`day-${ymd}`);
+      const el = sectionRefs.current.get(ymd);
+      const wrap = stripWrapRef.current;
       if (!el) return;
-      // Stop the observer fighting the programmatic scroll.
-      suppressObserver.current = true;
-      el.scrollIntoView({ block: "start", behavior: "smooth" });
-      window.setTimeout(() => {
-        suppressObserver.current = false;
-      }, 700);
+      // Land the day header just below the sticky strip rather than under it.
+      const offset = (wrap?.getBoundingClientRect().height ?? 0) + 8;
+      const top = window.scrollY + el.getBoundingClientRect().top - offset;
+      window.scrollTo({ top, behavior: "smooth" });
     },
-    [tab],
+    [tab, panStripTo],
   );
 
   const cycleStatus = useCallback(
@@ -250,10 +294,14 @@ export function RunsheetApp({
       </div>
 
       {/* Day strip — pure client state, no navigation. */}
-      <div className="no-print sticky top-0 z-10 border-b border-rs-border bg-rs-surface/95 px-3 py-2 backdrop-blur">
+      <div
+        ref={stripWrapRef}
+        className="no-print sticky top-0 z-10 border-b border-rs-border bg-rs-surface/95 px-3 py-2 backdrop-blur"
+      >
         <div className="-mx-1 flex justify-center px-1">
           <div
-            className="flex max-w-full snap-x gap-1 overflow-x-auto scroll-smooth pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ref={stripRef}
+            className="flex max-w-full gap-1 overflow-x-auto pb-1 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="list"
             aria-label="Days"
           >
@@ -277,7 +325,7 @@ export function RunsheetApp({
                     chipRefs.current.set(d.ymd, node);
                   }}
                   aria-current={isFocus ? "date" : undefined}
-                  className={`relative flex h-[60px] w-[48px] shrink-0 snap-center flex-col items-center justify-center rounded-xl ${chip}`}
+                  className={`relative flex h-[60px] w-[48px] shrink-0 flex-col items-center justify-center rounded-xl transition-colors ${chip}`}
                 >
                   <span className="text-[0.55rem] font-bold uppercase opacity-80">
                     {dt.toFormat("ccc")}
@@ -320,7 +368,14 @@ export function RunsheetApp({
                 .length;
 
             return (
-              <section key={d.ymd} id={`day-${d.ymd}`} className="mb-7 scroll-mt-28 print-break">
+              <section
+                key={d.ymd}
+                id={`day-${d.ymd}`}
+                ref={(node) => {
+                  sectionRefs.current.set(d.ymd, node);
+                }}
+                className="mb-7 scroll-mt-28 print-break"
+              >
                 <div className="mb-2 flex items-baseline justify-between gap-2 border-b border-rs-border pb-1.5">
                   <div className="min-w-0">
                     <h2 className="text-[0.95rem] font-bold leading-tight">
