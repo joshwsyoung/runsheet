@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Navigation } from "lucide-react";
 import { normalizeActivityType } from "@/lib/activity-types";
+import { mapsDirections } from "@/lib/places";
 
 type Point = { lat: number; lng: number; label: string };
 
@@ -18,18 +20,50 @@ async function geocode(q: string): Promise<Point | null> {
   }
 }
 
-/** Road route geometry between two points, or null if routing is unavailable. */
-async function fetchRoute(a: Point, b: Point): Promise<[number, number][] | null> {
+type RoadRoute = { line: [number, number][]; durationSec: number | null };
+
+/** Road route geometry + duration between two points, or null if routing is unavailable. */
+async function fetchRoute(a: Point, b: Point): Promise<RoadRoute | null> {
   try {
-    const res = await fetch(
-      `/api/route?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}`,
-    );
+    const res = await fetch(`/api/route?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}`);
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.found && Array.isArray(data.line) && data.line.length > 1 ? data.line : null;
+    if (!data?.found || !Array.isArray(data.line) || data.line.length < 2) return null;
+    return { line: data.line, durationSec: typeof data.duration === "number" ? data.duration : null };
   } catch {
     return null;
   }
+}
+
+/** Great-circle distance between two points, in kilometres. */
+function haversineKm(a: Point, b: Point): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Rough flight time: cruise ~800 km/h plus a fixed allowance for taxi/climb/descent. */
+function flightMinutes(a: Point, b: Point): number {
+  return (haversineKm(a, b) / 800) * 60 + 40;
+}
+
+/** Human duration from minutes: "35 min", "1 h 20 min". */
+function formatMinutes(mins: number): string {
+  const m = Math.max(1, Math.round(mins));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h} h ${rem} min` : `${h} h`;
+}
+
+/** A point as the "lat,lng" string Maps directions accept. */
+function coordStr(c: LatLng | null | undefined): string | null {
+  return c ? `${c.lat},${c.lng}` : null;
 }
 
 /** Activity types where a road route makes sense (a plane does not follow roads). */
@@ -127,6 +161,7 @@ export function SlotMapLeaflet({
   const mapRef = useRef<LeafletMap | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
   const [routeKind, setRouteKind] = useState<"road" | "line" | "flight" | null>(null);
+  const [travelLabel, setTravelLabel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,9 +225,10 @@ export function SlotMapLeaflet({
         if (cancelled || mapRef.current !== map) return;
 
         if (road) {
-          L.polyline(road, { color: ROUTE_BLUE, weight: 4, opacity: 0.9 }).addTo(map);
-          map.fitBounds(L.latLngBounds(road), { padding: [28, 28] });
+          L.polyline(road.line, { color: ROUTE_BLUE, weight: 4, opacity: 0.9 }).addTo(map);
+          map.fitBounds(L.latLngBounds(road.line), { padding: [28, 28] });
           setRouteKind("road");
+          setTravelLabel(road.durationSec != null ? formatMinutes(road.durationSec / 60) : null);
         } else if (isFlight) {
           const arc = arcPoints(found[0]!, found[1]!);
           L.polyline(arc, {
@@ -203,6 +239,7 @@ export function SlotMapLeaflet({
           }).addTo(map);
           map.fitBounds(L.latLngBounds(arc), { padding: [28, 28] });
           setRouteKind("flight");
+          setTravelLabel(formatMinutes(flightMinutes(found[0]!, found[1]!)));
         } else {
           L.polyline(straight, {
             color: ROUTE_BLUE,
@@ -212,10 +249,12 @@ export function SlotMapLeaflet({
           }).addTo(map);
           map.fitBounds(L.latLngBounds(straight), { padding: [28, 28] });
           setRouteKind("line");
+          setTravelLabel(null);
         }
       } else {
         map.setView([found[0]!.lat, found[0]!.lng], 14);
         setRouteKind(null);
+        setTravelLabel(null);
       }
 
       // The container is sized by CSS after mount; Leaflet needs telling.
@@ -247,21 +286,46 @@ export function SlotMapLeaflet({
 
   if (state === "empty") return null;
 
+  const isRoute = Boolean((from || fromCoords) && (to || toCoords));
+  const destination =
+    coordStr(toCoords) ||
+    to?.trim() ||
+    coordStr(singleCoords) ||
+    single?.trim() ||
+    coordStr(fromCoords) ||
+    from?.trim() ||
+    null;
+  const origin = isRoute ? coordStr(fromCoords) || from?.trim() || null : null;
+  const directionsHref = mapsDirections({ origin, destination });
+
+  const note =
+    routeKind === "road"
+      ? "Driving route"
+      : routeKind === "flight"
+        ? "Approximate flight path"
+        : routeKind === "line"
+          ? "Direct line, not a driving route"
+          : null;
+  const noteText = [note, travelLabel ? `~${travelLabel}` : null].filter(Boolean).join(" · ");
+
   return (
     <section className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface">
       <div ref={holder} className="h-48 w-full bg-rs-fill" />
-      {routeKind === "road" ? (
-        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
-          Driving route between the two places.
-        </p>
-      ) : routeKind === "flight" ? (
-        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
-          Approximate flight path between the two airports.
-        </p>
-      ) : routeKind === "line" ? (
-        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
-          Direct line between the two places, not a driving route.
-        </p>
+      {noteText || directionsHref ? (
+        <div className="flex items-center justify-between gap-2 border-t border-rs-border px-3 py-1.5">
+          <p className="min-w-0 truncate text-[0.68rem] text-rs-label">{noteText}</p>
+          {directionsHref ? (
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] font-bold text-rs-primary no-underline"
+            >
+              <Navigation className="h-3.5 w-3.5" aria-hidden />
+              Directions
+            </a>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

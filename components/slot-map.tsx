@@ -1,4 +1,6 @@
+import { Navigation } from "lucide-react";
 import { SlotMapLeaflet } from "@/components/slot-map-leaflet";
+import { mapsDirections } from "@/lib/places";
 
 /**
  * Map for a slot.
@@ -78,6 +80,7 @@ export function SlotMap({
 
   // Prefer the readable name in the accessible title, even when the query is coords.
   const titlePlace = single?.trim() || to?.trim() || from?.trim() || place;
+  const directionsHref = mapsDirections({ destination: place });
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface">
@@ -89,6 +92,19 @@ export function SlotMap({
         allowFullScreen
         className="block h-56 w-full border-0"
       />
+      {directionsHref ? (
+        <div className="flex items-center justify-end border-t border-rs-border px-3 py-1.5">
+          <a
+            href={directionsHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] font-bold text-rs-primary no-underline"
+          >
+            <Navigation className="h-3.5 w-3.5" aria-hidden />
+            Directions
+          </a>
+        </div>
+      ) : null}
     </section>
   );
 }
