@@ -33,6 +33,7 @@ export function SlotMap({
   toCoords,
   singleCoords,
   accent,
+  activityType,
 }: {
   from?: string | null;
   to?: string | null;
@@ -41,7 +42,6 @@ export function SlotMap({
   toCoords?: LatLng | null;
   singleCoords?: LatLng | null;
   accent: string;
-  /** Accepted for call-site compatibility; no longer affects rendering. */
   activityType?: string | null;
 }) {
   const key = process.env.GOOGLE_MAPS_API_KEY?.trim();
@@ -66,6 +66,7 @@ export function SlotMap({
         toCoords={toCoords}
         singleCoords={singleCoords}
         accent={accent}
+        activityType={activityType}
       />
     );
   }

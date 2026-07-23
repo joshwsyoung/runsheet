@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { normalizeActivityType } from "@/lib/activity-types";
 
 type Point = { lat: number; lng: number; label: string };
 
@@ -17,15 +18,34 @@ async function geocode(q: string): Promise<Point | null> {
   }
 }
 
+/** Road route geometry between two points, or null if routing is unavailable. */
+async function fetchRoute(a: Point, b: Point): Promise<[number, number][] | null> {
+  try {
+    const res = await fetch(
+      `/api/route?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.found && Array.isArray(data.line) && data.line.length > 1 ? data.line : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Activity types where a road route makes sense (a plane does not follow roads). */
+function usesRoadRoute(activityType: string | null | undefined): boolean {
+  const t = normalizeActivityType(activityType);
+  return t === "taxi" || t === "driving" || t === "rental_car";
+}
+
 /**
- * Fallback map, used when no Google Maps key is configured.
+ * A small Leaflet map for a slot. Used for all routes, and for single places when no
+ * Google Maps key is configured.
  *
- * A small Leaflet map for a slot.
- *
- * Two places (a taxi, a drive, a flight) get both pins and a line between them; one
- * place gets a single pin. The line is a direct great-circle-ish hop, not a driving
- * route — drawing a real route needs a routing service, and pretending a straight line
- * is your road route would be misleading.
+ * Two places get both pins and a line between them; one place gets a single pin. For
+ * driving-type journeys the line follows real roads via OSRM; if routing is unavailable
+ * (or the trip is a flight) it falls back to a direct line, labelled as such so a
+ * straight hop is never mistaken for a road route.
  *
  * Leaflet is loaded on demand so it stays out of the main bundle, and markers are
  * divIcons so there are no missing marker-image assets to chase.
@@ -50,6 +70,7 @@ export function SlotMapLeaflet({
   toCoords,
   singleCoords,
   accent,
+  activityType,
 }: {
   from?: string | null;
   to?: string | null;
@@ -58,10 +79,12 @@ export function SlotMapLeaflet({
   toCoords?: LatLng | null;
   singleCoords?: LatLng | null;
   accent: string;
+  activityType?: string | null;
 }) {
   const holder = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
+  const [routeKind, setRouteKind] = useState<"road" | "line" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,16 +137,31 @@ export function SlotMapLeaflet({
       });
 
       if (found.length > 1) {
-        L.polyline(
-          found.map((p) => [p.lat, p.lng] as [number, number]),
-          { color: accent, weight: 3, opacity: 0.75, dashArray: "6 6" },
-        ).addTo(map);
-        map.fitBounds(
-          L.latLngBounds(found.map((p) => [p.lat, p.lng] as [number, number])),
-          { padding: [28, 28] },
-        );
+        const straight = found.map((p) => [p.lat, p.lng] as [number, number]);
+
+        // Try a real road route for driving-type journeys; fall back to a direct line.
+        const road = usesRoadRoute(activityType)
+          ? await fetchRoute(found[0]!, found[1]!)
+          : null;
+        if (cancelled || mapRef.current !== map) return;
+
+        if (road) {
+          L.polyline(road, { color: accent, weight: 4, opacity: 0.85 }).addTo(map);
+          map.fitBounds(L.latLngBounds(road), { padding: [28, 28] });
+          setRouteKind("road");
+        } else {
+          L.polyline(straight, {
+            color: accent,
+            weight: 3,
+            opacity: 0.75,
+            dashArray: "6 6",
+          }).addTo(map);
+          map.fitBounds(L.latLngBounds(straight), { padding: [28, 28] });
+          setRouteKind("line");
+        }
       } else {
         map.setView([found[0]!.lat, found[0]!.lng], 14);
+        setRouteKind(null);
       }
 
       // The container is sized by CSS after mount; Leaflet needs telling.
@@ -144,6 +182,7 @@ export function SlotMapLeaflet({
     to,
     single,
     accent,
+    activityType,
     fromCoords?.lat,
     fromCoords?.lng,
     toCoords?.lat,
@@ -157,7 +196,11 @@ export function SlotMapLeaflet({
   return (
     <section className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface">
       <div ref={holder} className="h-48 w-full bg-rs-fill" />
-      {from && to ? (
+      {routeKind === "road" ? (
+        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
+          Driving route between the two places.
+        </p>
+      ) : routeKind === "line" ? (
         <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
           Direct line between the two places, not a driving route.
         </p>
