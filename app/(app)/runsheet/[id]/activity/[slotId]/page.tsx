@@ -130,7 +130,6 @@ export default async function ActivityPage({
       : {};
   const attachments = attachmentUrlsOf(s);
   const actions = slotActions(s);
-  const backHref = `/runsheet/${runsheetId}?day=${dayYmd}`;
 
   // Neighbours across the whole trip, in time order — so you can walk the itinerary
   // without bouncing back to the list between each one.
@@ -507,25 +506,38 @@ export default async function ActivityPage({
               ) : null}
 
               {s.link_url ? (
-                <section className="rounded-[14px] border border-rs-border bg-rs-surface p-3">
-                  <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
-                    Link
-                  </h2>
-                  <a
-                    className="mt-1.5 block truncate text-[0.85rem] font-bold text-rs-primary underline"
-                    href={s.link_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {s.preview_title ?? s.link_url}
-                  </a>
-                  {s.preview_description ? (
-                    <p className="mt-1.5 text-[0.8rem] leading-relaxed text-rs-muted">
-                      {s.preview_description}
-                    </p>
+                <section className="overflow-hidden rounded-[14px] border border-rs-border bg-rs-surface">
+                  <div className="flex items-center justify-between gap-2 px-3 pt-3">
+                    <h2 className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
+                      Link
+                    </h2>
+                    <LinkPreviewButton slotId={slotId} needsFetch={!s.preview_fetched_at} />
+                  </div>
+                  {s.preview_image_url ? (
+                    <a href={s.link_url} target="_blank" rel="noreferrer" className="mt-2 block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={s.preview_image_url}
+                        alt={s.preview_title ?? "Link preview"}
+                        className="h-44 w-full object-cover"
+                        loading="lazy"
+                      />
+                    </a>
                   ) : null}
-                  <div className="mt-2">
-                    <LinkPreviewButton slotId={slotId} />
+                  <div className="px-3 pb-3 pt-2">
+                    <a
+                      className="block truncate text-[0.85rem] font-bold text-rs-primary underline"
+                      href={s.link_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {s.preview_title ?? s.link_url}
+                    </a>
+                    {s.preview_description ? (
+                      <p className="mt-1.5 text-[0.8rem] leading-relaxed text-rs-muted">
+                        {s.preview_description}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
               ) : null}
@@ -570,13 +582,6 @@ export default async function ActivityPage({
                   </span>
                 )}
               </nav>
-
-              <Link
-                href={backHref}
-                className="block rounded-xl border border-rs-border bg-rs-surface py-2.5 text-center text-[0.8rem] font-bold text-rs-secondary no-underline"
-              >
-                Back to the day
-              </Link>
             </>
           )}
         </div>

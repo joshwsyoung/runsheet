@@ -54,25 +54,12 @@ export function SlotCoreFields({
       ? (defaultType as ActivityType)
       : "other",
   );
-  const [fromLocation, setFromLocation] = useState(defaultFromLocation ?? "");
-  const [toLocation, setToLocation] = useState(defaultToLocation ?? "");
-  const [locationName, setLocationName] = useState(defaultLocationName ?? "");
-
   const titleLabel = useMemo(() => {
     if (activityType === "activity" || activityType === "other") return "Title";
     if (activityType === "flight") return "Flight title";
     if (activityType === "taxi") return "Ride title";
     return "Title";
   }, [activityType]);
-  const locationQuery = useMemo(() => {
-    if (activityType === "flight" || activityType === "taxi" || activityType === "driving") {
-      return [fromLocation, toLocation].filter(Boolean).join(" to ");
-    }
-    return locationName;
-  }, [activityType, fromLocation, toLocation, locationName]);
-  const mapsHref = locationQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
-    : "";
 
   return (
     <>
@@ -105,7 +92,6 @@ export function SlotCoreFields({
             defaultValue={defaultFromLocation}
             defaultLat={defaultFromLat}
             defaultLng={defaultFromLng}
-            onValueChange={setFromLocation}
           />
           <LocationSearchField
             name="to_location"
@@ -116,7 +102,6 @@ export function SlotCoreFields({
             defaultValue={defaultToLocation}
             defaultLat={defaultToLat}
             defaultLng={defaultToLng}
-            onValueChange={setToLocation}
           />
         </div>
       )}
@@ -234,7 +219,6 @@ export function SlotCoreFields({
           defaultValue={defaultLocationName}
           defaultLat={defaultLocationLat}
           defaultLng={defaultLocationLng}
-          onValueChange={setLocationName}
         />
       )}
 
@@ -303,28 +287,9 @@ export function SlotCoreFields({
         </p>
       </div>
 
-      <label>
-        <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-wide text-rs-label">Map link (Google/Apple)</span>
-        <input
-          name="map_url"
-          type="url"
-          defaultValue={defaultMapUrl ?? ""}
-          placeholder="https://maps.google.com/..."
-          className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-        />
-        {mapsHref ? (
-          <a
-            className="mt-1 inline-block text-[0.72rem] font-bold text-rs-primary underline"
-            href={mapsHref}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Search this location on Google Maps
-          </a>
-        ) : (
-          <p className="mt-1 text-[0.72rem] text-rs-muted">Add a location name or from/to to enable quick lookup.</p>
-        )}
-      </label>
+      {/* Map link field retired — the map now resolves from the searchable locations and
+          their pinned coordinates. Preserve any existing value so edits don't wipe it. */}
+      <input type="hidden" name="map_url" defaultValue={defaultMapUrl ?? ""} />
     </>
   );
 }

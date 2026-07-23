@@ -111,13 +111,7 @@ export default async function RunsheetSettingsPage({
       <div className="w-full max-w-[450px] space-y-3">
         <div className="flex items-start justify-between gap-2 px-1">
           <div>
-            <Link
-              href={`/runsheet/${id}`}
-              className="text-[0.8rem] font-bold text-rs-subtle no-underline hover:text-rs-primary"
-            >
-              ← Back to trip
-            </Link>
-            <h1 className="mt-2 text-[1.05rem] font-bold leading-snug">Trip settings</h1>
+            <h1 className="text-[1.05rem] font-bold leading-snug">Trip settings</h1>
             <p className="mt-0.5 text-[0.72rem] text-rs-faint">{runsheet.title}</p>
           </div>
         </div>

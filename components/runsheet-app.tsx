@@ -13,8 +13,6 @@ import {
   Ticket,
   Phone,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { slotActions } from "@/lib/slot-actions";
 import { activityMeta } from "@/lib/activity-types";
@@ -29,10 +27,8 @@ import {
 import {
   slotHm,
   slotHourGridPlacement,
-  slotSpansNextCalendarDay,
   slotTodoItemsFromRow,
 } from "@/lib/slot-display";
-import { slotTodoProgressLabel } from "@/lib/slot-todos";
 import type { Database } from "@/lib/database.types";
 import { setDayStatusRemote, toggleTodoRemote, addChecklistRemote } from "@/app/actions/quick";
 import { useViewToggle } from "@/components/view-toggle-context";
@@ -56,7 +52,6 @@ const GRID_START_HOUR = 6;
 const GRID_END_HOUR = 22;
 
 type Tab = "list" | "schedule";
-type ScheduleView = "hours" | "all";
 
 /**
  * The whole runsheet is one client view over a single server payload.
@@ -80,7 +75,6 @@ export function RunsheetApp({
   todayYmd,
   initialFocusYmd,
   initialTab,
-  initialScheduleView,
 }: {
   runsheetId: string;
   title: string;
@@ -94,10 +88,8 @@ export function RunsheetApp({
   todayYmd: string;
   initialFocusYmd: string;
   initialTab: Tab;
-  initialScheduleView: ScheduleView;
 }) {
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [scheduleView, setScheduleView] = useState<ScheduleView>(initialScheduleView);
   const [focusYmd, setFocusYmd] = useState(initialFocusYmd);
   const [, startTransition] = useTransition();
 
@@ -146,10 +138,9 @@ export function RunsheetApp({
     p.set("day", focusYmd);
     if (tab === "schedule") {
       p.set("tab", "schedule");
-      p.set("sv", scheduleView);
     }
     window.history.replaceState(null, "", `?${p.toString()}`);
-  }, [focusYmd, tab, scheduleView]);
+  }, [focusYmd, tab]);
 
   /**
    * Pan the day strip horizontally to centre a chip.
@@ -311,15 +302,6 @@ export function RunsheetApp({
             {DateTime.fromISO(startDate, { zone: tz }).toFormat("d MMM yyyy")} –{" "}
             {DateTime.fromISO(endDate, { zone: tz }).toFormat("d MMM yyyy")}
           </p>
-        </div>
-        <div className="no-print flex shrink-0 flex-col items-end gap-2 pt-0.5">
-          <Link
-            href="/dashboard"
-            prefetch
-            className="text-[0.72rem] font-bold text-rs-primary no-underline hover:underline"
-          >
-            ← Back
-          </Link>
         </div>
       </div>
 
@@ -552,56 +534,7 @@ export function RunsheetApp({
         </div>
       ) : (
         <div className="flex-1 bg-rs-surface px-2 pb-4 pt-3 sm:rounded-b-[24px]">
-          <div className="no-print mx-1 mb-3 flex gap-1 rounded-[10px] bg-rs-fill p-1" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={scheduleView === "hours"}
-              onClick={() => setScheduleView("hours")}
-              className="rs-tab inline-flex flex-1 items-center justify-center shadow-none"
-            >
-              Day · hours
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={scheduleView === "all"}
-              onClick={() => setScheduleView("all")}
-              className="rs-tab inline-flex flex-1 items-center justify-center shadow-none"
-            >
-              All days
-            </button>
-          </div>
-
-          {scheduleView === "hours" ? (
-            <div
-              onTouchStart={onDayTouchStart}
-              onTouchEnd={onDayTouchEnd}
-              className="touch-pan-y"
-            >
-              <div className="mb-2 flex items-center justify-between gap-2 px-1">
-                <button
-                  type="button"
-                  onClick={() => stepDay(-1)}
-                  disabled={dayIndex <= 0}
-                  aria-label="Previous day"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rs-label disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
-                </button>
-                <p className="text-center text-[0.7rem] font-bold uppercase tracking-wide text-rs-label">
-                  {DateTime.fromISO(focusYmd, { zone: tz }).toFormat("ccc d MMM")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => stepDay(1)}
-                  disabled={dayIndex >= days.length - 1}
-                  aria-label="Next day"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rs-label disabled:opacity-30"
-                >
-                  <ChevronRight className="h-4 w-4" aria-hidden />
-                </button>
-              </div>
+          <div onTouchStart={onDayTouchStart} onTouchEnd={onDayTouchEnd} className="touch-pan-y">
               <div
                 className="mx-auto grid max-w-full grid-cols-[2.25rem_1fr] overflow-hidden rounded-xl border border-rs-border"
                 style={{ minHeight: HOURS.length * HOUR_PX }}
@@ -666,70 +599,7 @@ export function RunsheetApp({
                   })}
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-3 px-1">
-              {days.map((d) => {
-                const rows = slotsByYmd[d.ymd] ?? [];
-                const status = dayStatusMeta(statusById[d.id]);
-                return (
-                  <div key={d.ymd} className="rs-card">
-                    <div className="mb-2 flex items-baseline justify-between gap-2">
-                      <h3 className="text-[0.85rem] font-bold text-rs-text">
-                        {DateTime.fromISO(d.ymd, { zone: tz }).toFormat("ccc d MMM")}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => cycleStatus(d.id)}
-                        className="no-print inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wide text-rs-muted"
-                      >
-                        <span
-                          aria-hidden
-                          className="inline-block h-2 w-2 rounded-full"
-                          style={{ backgroundColor: status.dot }}
-                        />
-                        {status.short}
-                      </button>
-                    </div>
-                    {rows.length === 0 ? (
-                      <p className="text-[0.78rem] text-rs-label">No slots</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {rows.map((slot) => {
-                          const todoItems = slotTodoItemsFromRow(slot);
-                          const crosses = slotSpansNextCalendarDay(
-                            slot.start_at,
-                            slot.end_at,
-                            tz,
-                            slot.open_ended,
-                          );
-                          const endShown = slot.open_ended
-                            ? "open"
-                            : `${slotHm(slot.end_at, tz)}${crosses ? "+" : ""}`;
-                          const todoNote =
-                            todoItems.length > 0
-                              ? ` · ${slotTodoProgressLabel(todoItems)} to-do${todoItems.length > 1 ? "s" : ""}`
-                              : "";
-                          return (
-                            <li key={slot.id} className="text-[0.78rem]">
-                              <Link
-                                href={`/runsheet/${runsheetId}/activity/${slot.id}`}
-                                prefetch={false}
-                                className="font-bold text-rs-text no-underline hover:text-rs-primary"
-                              >
-                                {slotHm(slot.start_at, tz)}–{endShown} · {slot.title}
-                                {todoNote}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          </div>
         </div>
       )}
 

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
@@ -36,13 +35,7 @@ export default async function NewSlotPage({
   return (
     <div className="flex min-h-dvh justify-center bg-rs-page p-0 pb-10 sm:p-2.5">
       <div className="w-full max-w-[450px] space-y-4 pt-2 sm:pt-4">
-        <div className="flex items-center justify-between">
-          <Link
-            href={`/runsheet/${id}?day=${defaultDayYmd}`}
-            className="text-sm font-bold text-rs-subtle no-underline hover:text-rs-primary"
-          >
-            ← Back
-          </Link>
+        <div className="flex items-center justify-end">
           <span className="text-xs font-bold uppercase tracking-wide text-rs-label">New slot</span>
         </div>
         <form action={createSlotFromForm} className="rs-card space-y-3 p-4 sm:p-5">

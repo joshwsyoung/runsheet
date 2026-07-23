@@ -124,7 +124,6 @@ export async function RunsheetView({
           todayYmd={todayYmd}
           initialFocusYmd={focusYmd}
           initialTab={searchParams.tab === "schedule" ? "schedule" : "list"}
-          initialScheduleView={searchParams.sv === "all" ? "all" : "hours"}
         />
       </div>
     </div>
