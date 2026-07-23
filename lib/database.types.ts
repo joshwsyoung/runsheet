@@ -330,6 +330,10 @@ export interface Database {
         Args: { invite_token: string };
         Returns: undefined;
       };
+      create_runsheet_invite: {
+        Args: { p_runsheet_id: string; p_email: string; p_role?: string };
+        Returns: string;
+      };
       peek_invite: {
         Args: { invite_token: string };
         Returns: {

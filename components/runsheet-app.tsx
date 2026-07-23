@@ -792,10 +792,7 @@ function SlotCard({
       >
         <div
           className="border-l-[4px] p-3"
-          style={{
-            borderColor: meta.border,
-            background: `linear-gradient(90deg,${meta.tint} 0%,var(--color-rs-surface) 14%)`,
-          }}
+          style={{ borderColor: meta.border }}
         >
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">

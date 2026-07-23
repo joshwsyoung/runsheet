@@ -21,40 +21,70 @@ export async function inviteToRunsheet(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const token = randomBytes(24).toString("hex");
+  const normalizedRole = role === "viewer" ? "viewer" : "editor";
 
-  // Re-inviting the same address should just refresh the link. There is a unique index
-  // on (runsheet_id, lower(email)), so clear any prior invite for this address first
-  // rather than colliding with it.
-  await supabase.from("runsheet_invites").delete().eq("runsheet_id", runsheetId).eq("email", email);
-
-  const { error } = await supabase.from("runsheet_invites").insert({
-    runsheet_id: runsheetId,
-    email,
-    role: role === "viewer" ? "viewer" : "editor",
-    token,
-    invited_by: user.id,
+  // Preferred path: a SECURITY DEFINER RPC that upserts and returns the token, immune to
+  // the runsheet_invites RLS quirks (blocked read-back, delete that does not clear the
+  // row) seen on the deployed database. Mirrors how create_runsheet works.
+  const { data: rpcToken, error: rpcError } = await supabase.rpc("create_runsheet_invite", {
+    p_runsheet_id: runsheetId,
+    p_email: email,
+    p_role: normalizedRole,
   });
+
+  let token: string | null =
+    typeof rpcToken === "string" && rpcToken.length > 0 ? rpcToken : null;
+  let failure = rpcError?.message ?? null;
+
+  // Fallback for databases that do not have the RPC yet: delete-then-insert, and if the
+  // row cannot be cleared, reuse the existing invite's token so the owner still gets a
+  // working link.
+  if (!token) {
+    const fresh = randomBytes(24).toString("hex");
+    await supabase
+      .from("runsheet_invites")
+      .delete()
+      .eq("runsheet_id", runsheetId)
+      .ilike("email", email);
+    const { error: insertError } = await supabase.from("runsheet_invites").insert({
+      runsheet_id: runsheetId,
+      email,
+      role: normalizedRole,
+      token: fresh,
+      invited_by: user.id,
+    });
+    if (!insertError) {
+      token = fresh;
+      failure = null;
+    } else if (insertError.code === "23505") {
+      const { data: existing } = await supabase
+        .from("runsheet_invites")
+        .select("token")
+        .eq("runsheet_id", runsheetId)
+        .ilike("email", email)
+        .maybeSingle();
+      token = existing?.token ?? null;
+      failure = token ? null : insertError.message;
+    } else {
+      failure = insertError.message;
+    }
+  }
 
   revalidatePath(`/runsheet/${runsheetId}`);
   revalidatePath(`/runsheet/${runsheetId}/settings`);
-  if (error) {
-    console.error("[inviteToRunsheet] insert failed", {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    });
-    // Surface the real reason (e.g. a missing table or a policy) so it can be fixed,
-    // rather than a generic "try again".
+
+  if (!token) {
+    console.error("[inviteToRunsheet] failed", { rpcError, failure });
     redirect(
-      `/runsheet/${runsheetId}/settings?error=invite-failed&msg=${encodeURIComponent(error.message)}`,
+      `/runsheet/${runsheetId}/settings?error=invite-failed&msg=${encodeURIComponent(
+        failure ?? "unknown error",
+      )}`,
     );
   }
-  // Pass the freshly created token back so the share link is shown immediately — the
-  // owner's read-back of pending invites can be blocked by row-level security on some
-  // databases, and this does not depend on it. The recipient must still sign in with the
-  // invited address to accept, so the token in the owner's own URL is low-risk.
+
+  // Pass the token back so the share link shows immediately, without depending on a
+  // read-back that RLS may block. The recipient must still sign in with the invited
+  // address to accept, so the token in the owner's own URL is low-risk.
   redirect(
     `/runsheet/${runsheetId}/settings?invited=${encodeURIComponent(email)}&newToken=${token}#invite`,
   );
