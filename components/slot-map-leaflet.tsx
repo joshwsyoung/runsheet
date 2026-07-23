@@ -38,6 +38,48 @@ function usesRoadRoute(activityType: string | null | undefined): boolean {
   return t === "taxi" || t === "driving" || t === "rental_car";
 }
 
+/** The route line colour. */
+const ROUTE_BLUE = "#2f6fed";
+
+/**
+ * A gently arched line between two points, so a flight reads as a flight rather than a
+ * ruler-straight hop. A quadratic curve whose control point is pushed perpendicular to
+ * the line; not geographically exact, just a friendlier shape.
+ */
+function arcPoints(a: Point, b: Point, curvature = 0.18, steps = 48): [number, number][] {
+  const midLat = (a.lat + b.lat) / 2;
+  const midLng = (a.lng + b.lng) / 2;
+  const dLat = b.lat - a.lat;
+  const dLng = b.lng - a.lng;
+  const dist = Math.hypot(dLat, dLng) || 0.0001;
+
+  // Perpendicular to the line, normalised, flipped to always arch upward (toward higher
+  // latitude) so the curve is consistent whichever way the journey runs.
+  let perpLat = -dLng;
+  let perpLng = dLat;
+  const perpLen = Math.hypot(perpLat, perpLng) || 1;
+  perpLat /= perpLen;
+  perpLng /= perpLen;
+  if (perpLat < 0) {
+    perpLat = -perpLat;
+    perpLng = -perpLng;
+  }
+
+  const off = curvature * dist;
+  const ctrlLat = midLat + perpLat * off;
+  const ctrlLng = midLng + perpLng * off;
+
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const u = 1 - t;
+    const lat = u * u * a.lat + 2 * u * t * ctrlLat + t * t * b.lat;
+    const lng = u * u * a.lng + 2 * u * t * ctrlLng + t * t * b.lng;
+    pts.push([lat, lng]);
+  }
+  return pts;
+}
+
 /**
  * A small Leaflet map for a slot. Used for all routes, and for single places when no
  * Google Maps key is configured.
@@ -84,7 +126,7 @@ export function SlotMapLeaflet({
   const holder = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "empty">("loading");
-  const [routeKind, setRouteKind] = useState<"road" | "line" | null>(null);
+  const [routeKind, setRouteKind] = useState<"road" | "line" | "flight" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,22 +180,34 @@ export function SlotMapLeaflet({
 
       if (found.length > 1) {
         const straight = found.map((p) => [p.lat, p.lng] as [number, number]);
+        const isFlight = normalizeActivityType(activityType) === "flight";
 
-        // Try a real road route for driving-type journeys; fall back to a direct line.
+        // Try a real road route for driving-type journeys; fall back to a direct line
+        // (arched for flights).
         const road = usesRoadRoute(activityType)
           ? await fetchRoute(found[0]!, found[1]!)
           : null;
         if (cancelled || mapRef.current !== map) return;
 
         if (road) {
-          L.polyline(road, { color: accent, weight: 4, opacity: 0.85 }).addTo(map);
+          L.polyline(road, { color: ROUTE_BLUE, weight: 4, opacity: 0.9 }).addTo(map);
           map.fitBounds(L.latLngBounds(road), { padding: [28, 28] });
           setRouteKind("road");
+        } else if (isFlight) {
+          const arc = arcPoints(found[0]!, found[1]!);
+          L.polyline(arc, {
+            color: ROUTE_BLUE,
+            weight: 3,
+            opacity: 0.9,
+            dashArray: "7 7",
+          }).addTo(map);
+          map.fitBounds(L.latLngBounds(arc), { padding: [28, 28] });
+          setRouteKind("flight");
         } else {
           L.polyline(straight, {
-            color: accent,
+            color: ROUTE_BLUE,
             weight: 3,
-            opacity: 0.75,
+            opacity: 0.8,
             dashArray: "6 6",
           }).addTo(map);
           map.fitBounds(L.latLngBounds(straight), { padding: [28, 28] });
@@ -199,6 +253,10 @@ export function SlotMapLeaflet({
       {routeKind === "road" ? (
         <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
           Driving route between the two places.
+        </p>
+      ) : routeKind === "flight" ? (
+        <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
+          Approximate flight path between the two airports.
         </p>
       ) : routeKind === "line" ? (
         <p className="border-t border-rs-border px-3 py-1.5 text-[0.68rem] text-rs-label">
