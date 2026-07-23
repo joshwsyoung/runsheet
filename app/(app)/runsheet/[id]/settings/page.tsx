@@ -36,10 +36,10 @@ export default async function RunsheetSettingsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; invited?: string }>;
+  searchParams: Promise<{ error?: string; invited?: string; msg?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorCode, invited } = await searchParams;
+  const { error: errorCode, invited, msg } = await searchParams;
 
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -95,9 +95,11 @@ export default async function RunsheetSettingsPage({
       : `${tripStartFmt.toFormat("d MMM yyyy")} – ${tripEndFmt.toFormat("d MMM yyyy")}`;
 
   const banner =
-    BASICS_ERROR_COPY[errorCode ?? ""] ??
-    TRIP_ERROR_COPY[errorCode ?? ""] ??
-    (errorCode ? "Something went wrong. Try again." : null);
+    errorCode === "invite-failed" && msg
+      ? `Could not create that invite: ${msg}`
+      : (BASICS_ERROR_COPY[errorCode ?? ""] ??
+        TRIP_ERROR_COPY[errorCode ?? ""] ??
+        (errorCode ? "Something went wrong. Try again." : null));
 
   function roleLabel(role: string): string {
     const r = role.charAt(0).toUpperCase() + role.slice(1);

@@ -39,7 +39,17 @@ export async function inviteToRunsheet(formData: FormData) {
   revalidatePath(`/runsheet/${runsheetId}`);
   revalidatePath(`/runsheet/${runsheetId}/settings`);
   if (error) {
-    redirect(`/runsheet/${runsheetId}/settings?error=invite-failed`);
+    console.error("[inviteToRunsheet] insert failed", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    // Surface the real reason (e.g. a missing table or a policy) so it can be fixed,
+    // rather than a generic "try again".
+    redirect(
+      `/runsheet/${runsheetId}/settings?error=invite-failed&msg=${encodeURIComponent(error.message)}`,
+    );
   }
   redirect(`/runsheet/${runsheetId}/settings?invited=${encodeURIComponent(email)}#invite`);
 }

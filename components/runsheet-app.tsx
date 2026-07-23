@@ -35,6 +35,7 @@ import {
 import { slotTodoProgressLabel } from "@/lib/slot-todos";
 import type { Database } from "@/lib/database.types";
 import { setDayStatusRemote, toggleTodoRemote, addChecklistRemote } from "@/app/actions/quick";
+import { useViewToggle } from "@/components/view-toggle-context";
 
 type SlotRow = Database["public"]["Tables"]["slots"]["Row"];
 type CheckRow = Database["public"]["Tables"]["checklist_items"]["Row"];
@@ -48,8 +49,6 @@ export type DayPayload = {
 
 /** Height of the sticky AppHeader (h-12), which the day strip pins directly beneath. */
 const APP_HEADER_PX = 48;
-/** Height of TripHeroImage (h-28) — the view tabs straddle its lower edge. */
-const HERO_PX = 112;
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
 const HOUR_PX = 48;
@@ -101,6 +100,14 @@ export function RunsheetApp({
   const [scheduleView, setScheduleView] = useState<ScheduleView>(initialScheduleView);
   const [focusYmd, setFocusYmd] = useState(initialFocusYmd);
   const [, startTransition] = useTransition();
+
+  // Hand the List/Schedule toggle to the sticky header while this view is on screen, so
+  // it stays reachable after scrolling to a day. Keep local state as the source of truth.
+  const setViewController = useViewToggle()?.setController;
+  useEffect(() => {
+    setViewController?.({ tab, setTab });
+  }, [tab, setViewController]);
+  useEffect(() => () => setViewController?.(null), [setViewController]);
 
   // Optimistic mirrors. Keyed so a failed write can be reverted in place.
   const [statusById, setStatusById] = useState<Record<string, string>>(() =>
@@ -292,33 +299,8 @@ export function RunsheetApp({
 
   return (
     <>
-      {/* Tabs float over the bottom of the hero image — the parent card is relative.
-          Frosted backing so they stay legible over any photo. */}
-      <div
-        className="no-print absolute left-3 z-10 inline-flex gap-1 rounded-[12px] bg-rs-surface/85 p-1 shadow-[0_2px_10px_rgba(0,0,0,0.18)] backdrop-blur"
-        style={{ top: HERO_PX - 22 }}
-        role="tablist"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "list"}
-          onClick={() => setTab("list")}
-          className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
-        >
-          List
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "schedule"}
-          onClick={() => setTab("schedule")}
-          className="rs-tab inline-flex min-w-16 items-center justify-center px-2 text-center shadow-none"
-        >
-          Schedule
-        </button>
-      </div>
-
+      {/* The List/Schedule toggle now lives in the sticky header (see AppHeader), so it
+          stays reachable after scrolling to a day. */}
       <div className="flex items-start justify-between gap-3 border-b border-rs-border bg-rs-surface px-4 pb-4 pt-5">
         <div className="min-w-0">
           <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
