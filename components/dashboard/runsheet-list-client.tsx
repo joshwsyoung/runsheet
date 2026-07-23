@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { createRunsheet, archiveRunsheet } from "@/app/actions/runsheets";
 
 type RunsheetItem = {
@@ -11,6 +12,15 @@ type RunsheetItem = {
   start_date: string;
   end_date: string;
 };
+
+function CreateButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="rs-btn rs-btn-primary w-full disabled:opacity-60">
+      {pending ? "Creating…" : "Create runsheet"}
+    </button>
+  );
+}
 
 export function RunsheetListClient({
   runsheets,
@@ -23,50 +33,113 @@ export function RunsheetListClient({
   defaultStartUtc: string;
   defaultEndUtc: string;
 }) {
-  const createModalRef = useRef<HTMLDialogElement>(null);
+  // A plain state-driven overlay rather than the native <dialog>: it renders reliably
+  // across mobile browsers, and it can auto-open when the server bounced back with an
+  // error so the message is actually visible instead of hidden in a closed dialog.
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (createErrorMessage) setOpen(true);
+  }, [createErrorMessage]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    // Stop the page scrolling behind the modal.
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-center justify-between">
         <p className="text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">Yours</p>
-        <button type="button" className="rs-btn rs-btn-primary rs-btn-sm" onClick={() => createModalRef.current?.showModal()}>
+        <button
+          type="button"
+          className="rs-btn rs-btn-primary rs-btn-sm"
+          onClick={() => setOpen(true)}
+        >
           + Add
         </button>
       </div>
 
-      <dialog ref={createModalRef} className="w-[min(92vw,430px)] rounded-2xl border border-rs-border bg-rs-surface p-0 text-rs-text backdrop:bg-black/45">
-        <div className="p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold">New runsheet</h2>
-            <button type="button" className="rounded-lg px-2 py-1 text-rs-subtle hover:bg-rs-muted-surface" onClick={() => createModalRef.current?.close()}>
-              ✕
-            </button>
-          </div>
-          <form action={createRunsheet} className="space-y-3">
-            {createErrorMessage ? <p role="alert" className="rs-alert-danger text-sm">{createErrorMessage}</p> : null}
-            <input
-              name="title"
-              placeholder="Title (e.g. Greece 2026)"
-              required
-              className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
-            />
-            <div className="flex flex-wrap gap-2">
-              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip starts</span>
-                <input type="date" name="start_date" required defaultValue={defaultStartUtc} className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums" />
-              </label>
-              <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
-                <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip ends</span>
-                <input type="date" name="end_date" required defaultValue={defaultEndUtc} className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums" />
-              </label>
+      {open ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="New runsheet"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl border border-rs-border bg-rs-surface text-rs-text shadow-2xl sm:w-[min(92vw,430px)] sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-bold">New runsheet</h2>
+                <button
+                  type="button"
+                  className="rounded-lg px-2 py-1 text-rs-subtle hover:bg-rs-muted-surface"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <form action={createRunsheet} className="space-y-3">
+                {createErrorMessage ? (
+                  <p role="alert" className="rs-alert-danger text-sm">
+                    {createErrorMessage}
+                  </p>
+                ) : null}
+                <label className="block">
+                  <span className="mb-1 block text-[0.62rem] font-bold uppercase text-rs-label">
+                    Title
+                  </span>
+                  <input
+                    name="title"
+                    placeholder="e.g. Greece 2026"
+                    required
+                    autoFocus
+                    className="w-full rounded-xl border border-rs-border px-3 py-2 text-sm"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
+                    <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip starts</span>
+                    <input
+                      type="date"
+                      name="start_date"
+                      required
+                      defaultValue={defaultStartUtc}
+                      className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums"
+                    />
+                  </label>
+                  <label className="flex min-w-[8rem] flex-1 flex-col gap-1">
+                    <span className="text-[0.62rem] font-bold uppercase text-rs-label">Trip ends</span>
+                    <input
+                      type="date"
+                      name="end_date"
+                      required
+                      defaultValue={defaultEndUtc}
+                      className="rounded-xl border border-rs-border px-2 py-2 text-sm tabular-nums"
+                    />
+                  </label>
+                </div>
+                <input type="hidden" name="timezone" value="UTC" />
+                <CreateButton />
+              </form>
             </div>
-            <input type="hidden" name="timezone" value="UTC" />
-            <button type="submit" className="rs-btn rs-btn-primary w-full">
-              Create
-            </button>
-          </form>
+          </div>
         </div>
-      </dialog>
+      ) : null}
 
       <div className="space-y-2">
         {runsheets.length === 0 ? (

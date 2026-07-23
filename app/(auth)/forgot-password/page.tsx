@@ -16,8 +16,12 @@ export default async function ForgotPasswordPage({
         </p>
       </div>
       {sent ? (
-        <div className="rs-card text-sm text-rs-secondary">
-          If an account exists for that address, a reset link is on the way.
+        <div className="rs-card space-y-2 text-sm text-rs-secondary">
+          <p>If an account exists for that address, a reset link is on the way.</p>
+          <p className="text-[0.8rem] text-rs-muted">
+            Open it on this device, and soon — the link is single-use and expires, so an old
+            or already-opened one will not work.
+          </p>
         </div>
       ) : (
         <form action={requestPasswordReset} className="rs-card space-y-4">
@@ -29,6 +33,10 @@ export default async function ForgotPasswordPage({
                   errText = decodeURIComponent(error);
                 } catch {
                   /* keep raw */
+                }
+                if (errText === "link-expired") {
+                  errText =
+                    "That reset link is invalid or has expired. Request a new one below and open it promptly on this device.";
                 }
                 return (
                   <>

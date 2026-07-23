@@ -11,24 +11,37 @@ export async function inviteToRunsheet(formData: FormData) {
     .trim()
     .toLowerCase();
   const role = String(formData.get("role") ?? "editor");
-  if (!runsheetId || !email) return;
+  if (!runsheetId || !email) {
+    if (runsheetId) redirect(`/runsheet/${runsheetId}/settings?error=invite-missing-email`);
+    return;
+  }
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) redirect("/login");
 
   const token = randomBytes(24).toString("hex");
 
-  await supabase.from("runsheet_invites").insert({
+  // Re-inviting the same address should just refresh the link. There is a unique index
+  // on (runsheet_id, lower(email)), so clear any prior invite for this address first
+  // rather than colliding with it.
+  await supabase.from("runsheet_invites").delete().eq("runsheet_id", runsheetId).eq("email", email);
+
+  const { error } = await supabase.from("runsheet_invites").insert({
     runsheet_id: runsheetId,
     email,
     role: role === "viewer" ? "viewer" : "editor",
     token,
     invited_by: user.id,
   });
+
   revalidatePath(`/runsheet/${runsheetId}`);
   revalidatePath(`/runsheet/${runsheetId}/settings`);
+  if (error) {
+    redirect(`/runsheet/${runsheetId}/settings?error=invite-failed`);
+  }
+  redirect(`/runsheet/${runsheetId}/settings?invited=${encodeURIComponent(email)}#invite`);
 }
 
 export async function acceptInvite(token: string) {

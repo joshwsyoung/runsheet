@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser } from "@/lib/supabase/cached-session";
+import { getAuthSiteUrl } from "@/lib/site-url";
 import { inviteToRunsheet } from "@/app/actions/invites";
 import { updateRunsheetSettings } from "@/app/actions/runsheets";
+import { InviteShareLink } from "@/components/invite-share-link";
 import type { Database } from "@/lib/database.types";
 
 type InviteRow = Database["public"]["Tables"]["runsheet_invites"]["Row"];
@@ -19,6 +21,8 @@ const TRIP_ERROR_COPY: Record<string, string> = {
 const BASICS_ERROR_COPY: Record<string, string> = {
   "missing-title": "Trip name is required.",
   "save-failed": "Could not save trip details. Try again.",
+  "invite-missing-email": "Enter an email address to invite someone.",
+  "invite-failed": "Could not create that invite. Try again.",
 };
 
 function roleRank(role: string): number {
@@ -32,10 +36,10 @@ export default async function RunsheetSettingsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; invited?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorCode } = await searchParams;
+  const { error: errorCode, invited } = await searchParams;
 
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -78,7 +82,9 @@ export default async function RunsheetSettingsPage({
     invites = (invitesData ?? []) as InviteRow[];
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") ?? "";
+  // Absolute origin from the live request, so invite links always resolve even when
+  // NEXT_PUBLIC_SITE_URL is not set.
+  const origin = await getAuthSiteUrl();
 
   const tz = runsheet.timezone || "UTC";
   const tripStartFmt = DateTime.fromISO(runsheet.start_date, { zone: tz });
@@ -228,11 +234,20 @@ export default async function RunsheetSettingsPage({
               Pending invites can only be created or viewed by the trip owner.
             </p>
           ) : (
-            <>
+            <div id="invite">
               <h3 className="border-t border-rs-border pt-3 text-[0.65rem] font-bold uppercase tracking-wide text-rs-label">
                 Invite someone
               </h3>
-              <form action={inviteToRunsheet} className="flex flex-col gap-2">
+              <p className="mt-1 text-[0.72rem] leading-snug text-rs-muted">
+                Create a link and send it to them yourself (text, WhatsApp, email — whatever). They
+                sign in with the address you invite and get access.
+              </p>
+              {invited ? (
+                <p className="mt-2 rounded-xl bg-rs-today px-3 py-2 text-[0.75rem] font-bold text-rs-primary">
+                  Invite ready for {invited} — copy the link below and send it over.
+                </p>
+              ) : null}
+              <form action={inviteToRunsheet} className="mt-2 flex flex-col gap-2">
                 <input type="hidden" name="runsheet_id" value={id} />
                 <input
                   name="email"
@@ -253,30 +268,33 @@ export default async function RunsheetSettingsPage({
                   type="submit"
                   className="rounded-xl bg-rs-primary py-2 text-sm font-bold text-white"
                 >
-                  Send invite
+                  Create invite link
                 </button>
               </form>
               {invites.length ? (
-                <ul className="space-y-1 border-t border-rs-border pt-3 text-[0.72rem] text-rs-muted">
+                <ul className="mt-3 space-y-2 border-t border-rs-border pt-3">
                   {invites.map((inv) => (
-                    <li key={inv.id} className="flex justify-between gap-2">
-                      <span>{inv.email}</span>
-                      <span className="shrink-0 font-mono text-[0.62rem] text-rs-label">
-                        {site ? (
-                          <Link className="text-rs-primary" href={`/invite/${inv.token}`}>
-                            link
-                          </Link>
-                        ) : (
-                          `/invite/${inv.token}`
-                        )}
-                      </span>
+                    <li key={inv.id} className="space-y-1">
+                      <p className="text-[0.7rem] font-bold uppercase tracking-wide text-rs-label">
+                        {inv.email}
+                        <span className="ml-2 font-normal normal-case text-rs-faint">
+                          {inv.role === "viewer" ? "View only" : "Can edit"}
+                        </span>
+                      </p>
+                      <InviteShareLink
+                        url={`${origin}/invite/${inv.token}`}
+                        email={inv.email}
+                        tripTitle={runsheet.title}
+                      />
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-[0.72rem] text-rs-label">No pending invites.</p>
+                <p className="mt-3 border-t border-rs-border pt-3 text-[0.72rem] text-rs-label">
+                  No pending invites yet.
+                </p>
               )}
-            </>
+            </div>
           )}
         </div>
 
