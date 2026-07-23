@@ -51,7 +51,13 @@ export async function inviteToRunsheet(formData: FormData) {
       `/runsheet/${runsheetId}/settings?error=invite-failed&msg=${encodeURIComponent(error.message)}`,
     );
   }
-  redirect(`/runsheet/${runsheetId}/settings?invited=${encodeURIComponent(email)}#invite`);
+  // Pass the freshly created token back so the share link is shown immediately — the
+  // owner's read-back of pending invites can be blocked by row-level security on some
+  // databases, and this does not depend on it. The recipient must still sign in with the
+  // invited address to accept, so the token in the owner's own URL is low-risk.
+  redirect(
+    `/runsheet/${runsheetId}/settings?invited=${encodeURIComponent(email)}&newToken=${token}#invite`,
+  );
 }
 
 export async function acceptInvite(token: string) {

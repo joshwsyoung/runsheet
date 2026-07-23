@@ -36,10 +36,10 @@ export default async function RunsheetSettingsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; invited?: string; msg?: string }>;
+  searchParams: Promise<{ error?: string; invited?: string; msg?: string; newToken?: string }>;
 }) {
   const { id } = await params;
-  const { error: errorCode, invited, msg } = await searchParams;
+  const { error: errorCode, invited, msg, newToken } = await searchParams;
 
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -241,13 +241,20 @@ export default async function RunsheetSettingsPage({
                 Invite someone
               </h3>
               <p className="mt-1 text-[0.72rem] leading-snug text-rs-muted">
-                Create a link and send it to them yourself (text, WhatsApp, email — whatever). They
-                sign in with the address you invite and get access.
+                No email is sent. Create a link and send it to them yourself (text, WhatsApp,
+                email — whatever). They sign in with the address you invite and get access.
               </p>
-              {invited ? (
-                <p className="mt-2 rounded-xl bg-rs-today px-3 py-2 text-[0.75rem] font-bold text-rs-primary">
-                  Invite ready for {invited} — copy the link below and send it over.
-                </p>
+              {invited && newToken ? (
+                <div className="mt-2 space-y-1.5 rounded-xl bg-rs-today p-2.5">
+                  <p className="text-[0.75rem] font-bold text-rs-primary">
+                    Invite link ready for {invited} — copy it and send it over:
+                  </p>
+                  <InviteShareLink
+                    url={`${origin}/invite/${newToken}`}
+                    email={invited}
+                    tripTitle={runsheet.title}
+                  />
+                </div>
               ) : null}
               <form action={inviteToRunsheet} className="mt-2 flex flex-col gap-2">
                 <input type="hidden" name="runsheet_id" value={id} />
