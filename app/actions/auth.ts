@@ -69,13 +69,48 @@ export async function requestPasswordReset(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const siteUrl = await getAuthSiteUrl();
   const supabase = await createClient();
+  // Sends the recovery email. If the template includes the {{ .Token }} code, the user
+  // can type it on /reset-password — immune to the link-prefetch that expires magic
+  // links. The magic link still works too (it lands on /auth/callback).
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/auth/callback?next=/account/password`,
   });
   if (error) {
     redirect(`/forgot-password?error=${encodeURIComponent(error.message)}`);
   }
-  redirect("/forgot-password?sent=1");
+  redirect(`/reset-password?email=${encodeURIComponent(email)}&sent=1`);
+}
+
+/**
+ * Complete a password reset with the 6-digit code from the recovery email.
+ *
+ * verifyOtp establishes a session from the code, then updateUser sets the new password.
+ * A typed code cannot be consumed by an email scanner the way a magic link can, so this
+ * avoids the "otp_expired" failure entirely.
+ */
+export async function resetPasswordWithCode(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+  const token = String(formData.get("code") ?? "").replace(/\s+/g, "");
+  const password = String(formData.get("password") ?? "");
+  const back = (msg: string) =>
+    redirect(`/reset-password?email=${encodeURIComponent(email)}&error=${encodeURIComponent(msg)}`);
+
+  if (!email || !token) back("Enter the code from the email.");
+
+  const supabase = await createClient();
+  const { error: otpError } = await supabase.auth.verifyOtp({ email, token, type: "recovery" });
+  if (otpError) {
+    back(
+      /expired|invalid/i.test(otpError.message)
+        ? "That code is invalid or has expired. Request a new one below."
+        : otpError.message,
+    );
+  }
+  const { error: updateError } = await supabase.auth.updateUser({ password });
+  if (updateError) back(updateError.message);
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
 }
 
 export async function resendSignupConfirmation(formData: FormData) {

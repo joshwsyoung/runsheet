@@ -12,7 +12,7 @@ export default async function ForgotPasswordPage({
       <div>
         <h1 className="text-2xl font-bold text-rs-text">Reset password</h1>
         <p className="mt-1 text-sm text-rs-muted">
-          We will email you a link to choose a new password.
+          We will email you a code to choose a new password.
         </p>
       </div>
       {sent ? (
@@ -69,7 +69,7 @@ export default async function ForgotPasswordPage({
             type="submit"
             className="w-full rounded-xl bg-rs-primary py-2.5 text-sm font-bold text-white shadow-[0_4px_12px_rgba(74,144,226,0.25)]"
           >
-            Send reset link
+            Send reset code
           </button>
         </form>
       )}
