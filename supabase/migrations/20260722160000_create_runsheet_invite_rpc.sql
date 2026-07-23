@@ -42,7 +42,9 @@ begin
   end if;
 
   v_role := case when p_role = 'viewer' then 'viewer' else 'editor' end;
-  v_token := encode(gen_random_bytes(24), 'hex');
+  -- Schema-qualify: pgcrypto lives in the `extensions` schema on Supabase, which is not
+  -- on this function's search_path. Unqualified, it fails with "function does not exist".
+  v_token := encode(extensions.gen_random_bytes(24), 'hex');
 
   insert into public.runsheet_invites (runsheet_id, email, role, token, invited_by)
   values (p_runsheet_id, v_email, v_role, v_token, v_uid)
