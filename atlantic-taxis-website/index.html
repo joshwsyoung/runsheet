@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlantic Taxis | Penzance Taxi &amp; Private Hire</title>
+<meta name="description" content="Atlantic Taxis, Penzance — a friendly, local, family-run taxi service. Book by WhatsApp or phone. Comfortable saloon and 7-seater van, covering Penzance and West Cornwall.">
+<style>
+  :root{
+    --cream:#faf7f1;
+    --cream-deep:#f2ecdf;
+    --ink:#1f2a2e;
+    --ink-soft:#4a5a5f;
+    --navy:#12333d;
+    --navy-deep:#0b232b;
+    --teal:#1f6f78;
+    --gold:#c79a4b;
+    --gold-soft:#e4c98a;
+    --whatsapp:#25d366;
+    --line:rgba(18,51,61,0.12);
+    --radius:16px;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:Georgia,"Times New Roman",Times,serif;
+    font-weight:400;
+    color:var(--navy-deep);
+    letter-spacing:0.01em;
+  }
+
+  a{color:inherit;text-decoration:none;}
+
+  img{max-width:100%;display:block;}
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:0 20px;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    background:var(--navy-deep);
+    color:var(--cream);
+    text-align:center;
+    font-size:0.82rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:8px 12px;
+  }
+
+  /* ---------- Header / Hero ---------- */
+  header.hero{
+    background:
+      linear-gradient(180deg, rgba(11,35,43,0.82) 0%, rgba(18,51,61,0.90) 55%, rgba(31,111,120,0.85) 100%);
+    background-color:var(--navy-deep);
+    color:var(--cream);
+    padding:44px 20px 40px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  header.hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.05) 0, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06) 0, transparent 45%);
+    pointer-events:none;
+  }
+
+  .hero-inner{
+    max-width:640px;
+    margin:0 auto;
+    position:relative;
+    z-index:1;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:28px;
+  }
+
+  .brand-mark{
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    border:1.5px solid var(--gold-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .brand-mark svg{width:24px;height:24px;}
+
+  .brand-name{
+    font-family:Georgia,serif;
+    font-size:1.25rem;
+    letter-spacing:0.03em;
+    color:var(--cream);
+  }
+
+  .brand-name span{
+    display:block;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:0.68rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-top:2px;
+  }
+
+  .hero h1{
+    color:#fff;
+    font-size:2.1rem;
+    line-height:1.22;
+    max-width:20ch;
+    margin-bottom:14px;
+  }
+
+  .hero p.lead{
+    color:rgba(250,247,241,0.85);
+    font-size:1.02rem;
+    max-width:38ch;
+    margin-bottom:30px;
+  }
+
+  /* ---------- CTA buttons ---------- */
+  .cta-row{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:16px 20px;
+    border-radius:100px;
+    font-size:1.05rem;
+    font-weight:600;
+    letter-spacing:0.01em;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+    border:1px solid transparent;
+  }
+
+  .btn svg{width:20px;height:20px;flex-shrink:0;}
+
+  .btn-whatsapp{
+    background:var(--whatsapp);
+    color:#fff;
+    box-shadow:0 8px 20px rgba(37,211,102,0.28);
+  }
+
+  .btn-call{
+    background:var(--gold);
+    color:var(--navy-deep);
+    box-shadow:0 8px 20px rgba(199,154,75,0.25);
+  }
+
+  .btn:active{transform:scale(0.98);}
+
+  .hero-note{
+    text-align:center;
+    margin-top:16px;
+    font-size:0.82rem;
+    color:rgba(250,247,241,0.65);
+    letter-spacing:0.02em;
+  }
+
+  /* ---------- Sections ---------- */
+  section{
+    padding:48px 0;
+  }
+
+  section + section{
+    border-top:1px solid var(--line);
+  }
+
+  .eyebrow{
+    font-size:0.72rem;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--teal);
+    font-weight:600;
+    margin-bottom:10px;
+  }
+
+  h2{
+    font-size:1.5rem;
+    margin-bottom:16px;
+  }
+
+  p{
+    color:var(--ink-soft);
+    font-size:1rem;
+  }
+
+  /* ---------- About / owners ---------- */
+  .about-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:26px 22px;
+    box-shadow:0 2px 14px rgba(18,51,61,0.05);
+  }
+
+  .about-card p + p{margin-top:14px;}
+
+  .about-card .signoff{
+    margin-top:20px;
+    padding-top:18px;
+    border-top:1px dashed var(--line);
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .signoff-badge{
+    width:46px;height:46px;
+    border-radius:50%;
+    background:var(--cream-deep);
+    border:1px solid var(--gold-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,serif;
+    color:var(--navy);
+    font-size:1.1rem;
+    flex-shrink:0;
+  }
+
+  .signoff-text{font-size:0.88rem;color:var(--ink-soft);}
+  .signoff-text strong{color:var(--navy-deep);display:block;font-size:0.95rem;}
+
+  /* ---------- Fleet ---------- */
+  .fleet-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+
+  .fleet-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px;
+    box-shadow:0 2px 14px rgba(18,51,61,0.05);
+  }
+
+  .fleet-icon{
+    width:48px;height:48px;
+    border-radius:12px;
+    background:var(--cream-deep);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:14px;
+  }
+
+  .fleet-icon svg{width:26px;height:26px;color:var(--teal);}
+
+  .fleet-card h3{
+    font-size:1.12rem;
+    margin-bottom:6px;
+  }
+
+  .fleet-card p{font-size:0.94rem;}
+
+  .fleet-tag{
+    display:inline-block;
+    margin-top:12px;
+    font-size:0.74rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-weight:700;
+    background:rgba(199,154,75,0.12);
+    padding:4px 10px;
+    border-radius:100px;
+  }
+
+  /* ---------- Areas ---------- */
+  .areas-box{
+    background:var(--navy-deep);
+    color:var(--cream);
+    border-radius:var(--radius);
+    padding:28px 22px;
+  }
+
+  .areas-box h2{color:#fff;}
+
+  .areas-box p.lead-area{
+    color:rgba(250,247,241,0.78);
+    margin-bottom:20px;
+  }
+
+  .area-list{
+    list-style:none;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 16px;
+  }
+
+  .area-list li{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.94rem;
+    color:var(--cream);
+  }
+
+  .area-list li::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold-soft);
+    flex-shrink:0;
+  }
+
+  .areas-note{
+    margin-top:20px;
+    padding-top:18px;
+    border-top:1px solid rgba(250,247,241,0.15);
+    font-size:0.86rem;
+    color:rgba(250,247,241,0.7);
+  }
+
+  /* ---------- Reviews ---------- */
+  .review-row{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .review-link{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    box-shadow:0 2px 14px rgba(18,51,61,0.05);
+  }
+
+  .review-left{display:flex;align-items:center;gap:14px;}
+
+  .review-icon{
+    width:42px;height:42px;
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+
+  .review-icon.google{background:#fff;border:1px solid var(--line);}
+  .review-icon.facebook{background:#1877F2;}
+
+  .review-icon svg{width:22px;height:22px;}
+
+  .review-title{font-weight:600;font-size:0.98rem;color:var(--navy-deep);}
+  .review-sub{font-size:0.82rem;color:var(--ink-soft);}
+
+  .review-arrow{color:var(--teal);font-size:1.2rem;}
+
+  .stars{color:var(--gold);letter-spacing:2px;font-size:0.9rem;}
+
+  /* ---------- Booking strip ---------- */
+  .book-strip{
+    background:linear-gradient(135deg, var(--teal), var(--navy-deep));
+    color:#fff;
+    border-radius:var(--radius);
+    padding:30px 22px;
+    text-align:center;
+  }
+
+  .book-strip h2{color:#fff;margin-bottom:8px;}
+
+  .book-strip p{color:rgba(250,247,241,0.85);margin-bottom:22px;}
+
+  /* ---------- Footer ---------- */
+  footer{
+    background:var(--navy-deep);
+    color:rgba(250,247,241,0.6);
+    padding:32px 0 26px;
+    text-align:center;
+    font-size:0.82rem;
+  }
+
+  footer .foot-brand{
+    font-family:Georgia,serif;
+    color:var(--cream);
+    font-size:1.05rem;
+    margin-bottom:8px;
+  }
+
+  footer .foot-links{
+    margin-top:14px;
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  footer a{border-bottom:1px solid rgba(250,247,241,0.25);padding-bottom:1px;}
+
+  /* ---------- Sticky mobile CTA ---------- */
+  .sticky-cta{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    z-index:50;
+    display:flex;
+    gap:10px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(250,247,241,0.92);
+    backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);
+  }
+
+  .sticky-cta .btn{flex:1;padding:13px 12px;font-size:0.94rem;}
+
+  body{padding-bottom:78px;}
+
+  @media (min-width:600px){
+    .cta-row{flex-direction:row;}
+    .area-list{grid-template-columns:1fr 1fr 1fr;}
+    .fleet-grid{grid-template-columns:1fr 1fr;}
+    .review-row{flex-direction:row;}
+    .review-link{flex:1;}
+  }
+
+  @media (min-width:860px){
+    .wrap{max-width:760px;}
+    .hero-inner{max-width:760px;}
+    .hero h1{font-size:2.5rem;}
+    .sticky-cta{display:none;}
+    body{padding-bottom:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">Local &amp; Family Run &middot; Penzance, Cornwall</div>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e4c98a" stroke-width="1.4"><path d="M3 17c1.5-4 2-8 2-8h14s.5 4 2 8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2Z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="19" r="1.3" fill="#e4c98a" stroke="none"/><circle cx="17" cy="19" r="1.3" fill="#e4c98a" stroke="none"/><path d="M7 9c1-2 2.5-3 5-3s4 1 5 3" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-name">Atlantic Taxis<span>Penzance &middot; West Cornwall</span></div>
+    </div>
+
+    <h1>Your friendly local taxi, born and bred in Cornwall</h1>
+    <p class="lead">A small, family-run taxi service based in Penzance. Reliable, comfortable and easy to reach — book on WhatsApp or give us a ring.</p>
+
+    <div class="cta-row">
+      <a class="btn btn-whatsapp" href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.28a8.9 8.9 0 0 0 4.35 1.13h.02a8.94 8.94 0 0 0 6.53-15.53Zm-5.55 13.7h-.01a7.42 7.42 0 0 1-3.78-1.04l-.27-.16-2.8.96.94-2.72-.18-.28a7.44 7.44 0 1 1 6.1 3.24Zm4.08-5.56c-.22-.11-1.32-.65-1.53-.73-.2-.08-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11a6.7 6.7 0 0 1-1.24-1.54c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.4.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.4.06-.6.28-.2.22-.8.78-.8 1.9s.82 2.2.93 2.35c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26Z"/></svg>
+        Message on WhatsApp
+      </a>
+      <a class="btn btn-call" href="tel:+44XXXXXXXXXX">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.36 1.96.67 2.89a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.19-1.24a2 2 0 0 1 2.11-.45c.93.31 1.9.54 2.89.67A2 2 0 0 1 22 16.92Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Call Now
+      </a>
+    </div>
+    <p class="hero-note">Tap to message or call &mdash; usually answered within minutes</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="eyebrow">Our Story</div>
+    <h2>A proper Cornish taxi firm</h2>
+    <div class="about-card">
+      <p>Atlantic Taxis is run by a Cornish lad, born and bred right here — not some faceless call centre. He knows every lane, shortcut and back road from Penzance to the Lizard, and he's proud to be looking after his own community.</p>
+      <p>His wife runs things alongside him, so whether you're booking a school run, an airport transfer or a night out, you're dealing with a real local family who care about getting you there safely and on time.</p>
+      <div class="signoff">
+        <div class="signoff-badge">AT</div>
+        <div class="signoff-text">
+          <strong>A family business, through and through</strong>
+          Locally owned &amp; operated in Penzance, Cornwall
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLEET -->
+  <section id="fleet">
+    <div class="eyebrow">Our Vehicles</div>
+    <h2>Comfortable, clean &amp; ready to go</h2>
+    <div class="fleet-grid">
+      <div class="fleet-card">
+        <div class="fleet-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="13" width="20" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/></svg>
+        </div>
+        <h3>Hyundai Saloon</h3>
+        <p>Smart, comfortable and fuel-efficient — perfect for everyday journeys, station runs and couples travelling together.</p>
+        <span class="fleet-tag">Up to 4 passengers</span>
+      </div>
+      <div class="fleet-card">
+        <div class="fleet-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12l1-5.5A2 2 0 0 1 6 5h12a2 2 0 0 1 2 1.5L21 12" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="12" width="20" height="6" rx="1.5"/><path d="M2 15h20" stroke-linecap="round"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg>
+        </div>
+        <h3>7-Seater Van</h3>
+        <p>Ideal for larger families, groups, airport runs with extra luggage, or a night out with friends.</p>
+        <span class="fleet-tag">Up to 7 passengers</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- AREAS -->
+  <section id="areas">
+    <div class="areas-box">
+      <div class="eyebrow" style="color:var(--gold-soft);">Where We Go</div>
+      <h2>Operating Areas</h2>
+      <p class="lead-area">Based in Penzance and covering the far west of Cornwall, including:</p>
+      <ul class="area-list">
+        <li>Penzance</li>
+        <li>Newlyn</li>
+        <li>Mousehole</li>
+        <li>Marazion</li>
+        <li>St Ives</li>
+        <li>Hayle</li>
+        <li>St Just</li>
+        <li>Land's End</li>
+        <li>Sennen</li>
+        <li>Porthleven</li>
+        <li>Helston</li>
+        <li>Camborne</li>
+      </ul>
+      <div class="areas-note">Not sure if we cover your area? Just drop us a message on WhatsApp — we're happy to help with longer journeys too, including airport and station transfers.</div>
+    </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <section id="reviews">
+    <div class="eyebrow">What People Say</div>
+    <h2>Read &amp; leave us a review</h2>
+    <div class="review-row">
+      <a class="review-link" href="#" target="_blank" rel="noopener">
+        <div class="review-left">
+          <div class="review-icon google">
+            <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.07 5.07 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.67-2.26 1.06-3.71 1.06-2.86 0-5.28-1.93-6.14-4.53H2.18v2.85A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.86 14.1a6.6 6.6 0 0 1 0-4.2V7.05H2.18a11 11 0 0 0 0 9.9l3.68-2.85z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.05l3.68 2.85C6.72 7.3 9.14 5.38 12 5.38z"/></svg>
+          </div>
+          <div>
+            <div class="review-title">Google Reviews</div>
+            <div class="review-sub"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Read or leave a review</div>
+          </div>
+        </div>
+        <span class="review-arrow">&rarr;</span>
+      </a>
+      <a class="review-link" href="#" target="_blank" rel="noopener">
+        <div class="review-left">
+          <div class="review-icon facebook">
+            <svg viewBox="0 0 24 24" fill="#fff"><path d="M13.5 21v-7.5H16l.5-3H13.5V8.5c0-.87.24-1.46 1.49-1.46H16.6V4.35C16.3 4.32 15.28 4.24 14.1 4.24c-2.44 0-4.11 1.49-4.11 4.22V10.5H7.5v3H10V21h3.5Z"/></svg>
+          </div>
+          <div>
+            <div class="review-title">Facebook Page</div>
+            <div class="review-sub">Follow us for updates</div>
+          </div>
+        </div>
+        <span class="review-arrow">&rarr;</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- BOOK -->
+  <section id="book">
+    <div class="book-strip">
+      <h2>Ready to book?</h2>
+      <p>WhatsApp is the quickest way to reach us — or just call if you'd rather speak to someone.</p>
+      <div class="cta-row">
+        <a class="btn btn-whatsapp" href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.28a8.9 8.9 0 0 0 4.35 1.13h.02a8.94 8.94 0 0 0 6.53-15.53Zm-5.55 13.7h-.01a7.42 7.42 0 0 1-3.78-1.04l-.27-.16-2.8.96.94-2.72-.18-.28a7.44 7.44 0 1 1 6.1 3.24Zm4.08-5.56c-.22-.11-1.32-.65-1.53-.73-.2-.08-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11a6.7 6.7 0 0 1-1.24-1.54c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.4.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.4.06-.6.28-.2.22-.8.78-.8 1.9s.82 2.2.93 2.35c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26Z"/></svg>
+          WhatsApp Us
+        </a>
+        <a class="btn btn-call" href="tel:+44XXXXXXXXXX">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.36 1.96.67 2.89a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.19-1.24a2 2 0 0 1 2.11-.45c.93.31 1.9.54 2.89.67A2 2 0 0 1 22 16.92Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          01736 XXX XXX
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-brand">Atlantic Taxis</div>
+    <div>Penzance &middot; West Cornwall</div>
+    <div class="foot-links">
+      <a href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="tel:+44XXXXXXXXXX">Call</a>
+      <a href="#" target="_blank" rel="noopener">Google Reviews</a>
+      <a href="#" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <div style="margin-top:18px;font-size:0.75rem;">&copy; <span id="year"></span> Atlantic Taxis, Penzance. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- Sticky mobile call-to-action -->
+<div class="sticky-cta">
+  <a class="btn btn-whatsapp" href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.28a8.9 8.9 0 0 0 4.35 1.13h.02a8.94 8.94 0 0 0 6.53-15.53Zm-5.55 13.7h-.01a7.42 7.42 0 0 1-3.78-1.04l-.27-.16-2.8.96.94-2.72-.18-.28a7.44 7.44 0 1 1 6.1 3.24Zm4.08-5.56c-.22-.11-1.32-.65-1.53-.73-.2-.08-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11a6.7 6.7 0 0 1-1.24-1.54c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.4.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.4.06-.6.28-.2.22-.8.78-.8 1.9s.82 2.2.93 2.35c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26Z"/></svg>
+    WhatsApp
+  </a>
+  <a class="btn btn-call" href="tel:+44XXXXXXXXXX">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.36 1.96.67 2.89a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.19-1.24a2 2 0 0 1 2.11-.45c.93.31 1.9.54 2.89.67A2 2 0 0 1 22 16.92Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Call
+  </a>
+</div>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
