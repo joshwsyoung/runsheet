@@ -294,6 +294,26 @@
     border-radius:100px;
   }
 
+  .fleet-book{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-top:16px;
+    padding:11px 16px;
+    border-radius:100px;
+    background:var(--whatsapp);
+    color:#fff;
+    font-size:0.92rem;
+    font-weight:600;
+    box-shadow:0 6px 16px rgba(37,211,102,0.22);
+    transition:transform 0.15s ease;
+  }
+
+  .fleet-book svg{width:17px;height:17px;flex-shrink:0;}
+
+  .fleet-book:active{transform:scale(0.98);}
+
   /* ---------- Areas ---------- */
   .areas-box{
     background:var(--navy-deep);
@@ -490,8 +510,7 @@
     <div class="eyebrow">Our Story</div>
     <h2>A proper Cornish taxi firm</h2>
     <div class="about-card">
-      <p>Atlantic Taxis is run by a Cornish lad, born and bred right here — not some faceless call centre. He knows every lane, shortcut and back road from Penzance to the Lizard, and he's proud to be looking after his own community.</p>
-      <p>His wife runs things alongside him, so whether you're booking a school run, an airport transfer or a night out, you're dealing with a real local family who care about getting you there safely and on time.</p>
+      <p>Atlantic Taxis is a small, friendly husband-and-wife team, born and bred in Cornwall. We love looking after our local community and getting you where you need to go, safely and with a smile.</p>
       <div class="signoff">
         <div class="signoff-badge">AT</div>
         <div class="signoff-text">
@@ -511,17 +530,25 @@
         <div class="fleet-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="13" width="20" height="5" rx="1.5"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/></svg>
         </div>
-        <h3>Hyundai Saloon</h3>
+        <h3>Hyundai i40</h3>
         <p>Smart, comfortable and fuel-efficient — perfect for everyday journeys, station runs and couples travelling together.</p>
         <span class="fleet-tag">Up to 4 passengers</span>
+        <a class="fleet-book" href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.28a8.9 8.9 0 0 0 4.35 1.13h.02a8.94 8.94 0 0 0 6.53-15.53Zm-5.55 13.7h-.01a7.42 7.42 0 0 1-3.78-1.04l-.27-.16-2.8.96.94-2.72-.18-.28a7.44 7.44 0 1 1 6.1 3.24Zm4.08-5.56c-.22-.11-1.32-.65-1.53-.73-.2-.08-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11a6.7 6.7 0 0 1-1.24-1.54c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.4.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.4.06-.6.28-.2.22-.8.78-.8 1.9s.82 2.2.93 2.35c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26Z"/></svg>
+          Book Now
+        </a>
       </div>
       <div class="fleet-card">
         <div class="fleet-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12l1-5.5A2 2 0 0 1 6 5h12a2 2 0 0 1 2 1.5L21 12" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="12" width="20" height="6" rx="1.5"/><path d="M2 15h20" stroke-linecap="round"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg>
         </div>
-        <h3>7-Seater Van</h3>
-        <p>Ideal for larger families, groups, airport runs with extra luggage, or a night out with friends.</p>
+        <h3>Hyundai Transporter</h3>
+        <p>Our roomy 7-seater — ideal for larger families, groups, airport runs with extra luggage, or a night out with friends.</p>
         <span class="fleet-tag">Up to 7 passengers</span>
+        <a class="fleet-book" href="https://wa.me/44XXXXXXXXXX" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.28a8.9 8.9 0 0 0 4.35 1.13h.02a8.94 8.94 0 0 0 6.53-15.53Zm-5.55 13.7h-.01a7.42 7.42 0 0 1-3.78-1.04l-.27-.16-2.8.96.94-2.72-.18-.28a7.44 7.44 0 1 1 6.1 3.24Zm4.08-5.56c-.22-.11-1.32-.65-1.53-.73-.2-.08-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.16-.48.05-.22-.11-.94-.35-1.79-1.11a6.7 6.7 0 0 1-1.24-1.54c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.4.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.4-.06-.11-.5-1.2-.68-1.65-.18-.43-.36-.37-.5-.38h-.43c-.15 0-.4.06-.6.28-.2.22-.8.78-.8 1.9s.82 2.2.93 2.35c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26Z"/></svg>
+          Book Now
+        </a>
       </div>
     </div>
   </section>
